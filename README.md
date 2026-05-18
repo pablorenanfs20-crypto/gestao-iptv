@@ -1,2 +1,3 @@
-# gestao-iptv
-Sistema de gestão IPTV
+# NexClients
+
+Plataforma SaaS para gestão de clientes, assinaturas, vencimentos e pagamentos recorrentes.
