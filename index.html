@@ -1,16 +1,4 @@
 <!DOCTYPE html>
-
-<script>
-const usuario = localStorage.getItem("usuario_logado");
-
-if (!usuario) {
-  window.location.href = "/login.html";
-}
-</script>
-
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8"/>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8"/>
@@ -206,12 +194,27 @@ if (!usuario) {
   .dias-neg{color:var(--red);font-weight:700;} .dias-ok{color:var(--green);font-weight:600;}
   @media(max-width:600px){.summary,.filters,.table-wrap{padding-left:12px;padding-right:12px;}.form-grid{grid-template-columns:1fr;}}
 </style>
+<script>
+const usuario = localStorage.getItem("usuario_logado");
+
+if (!usuario) {
+  window.location.href = "/login.html";
+}
+
+function logout(){
+  localStorage.removeItem("usuario_logado");
+  window.location.href = "/login.html";
+}
+
+</script>
+
 </head>
 <body>
 
 <header>
   <h1>🎬 Gestão de Mensalidades IPTV</h1>
   <div class="header-btns">
+    <button class="btn" style="background:#DC2626;color:#fff" onclick="logout()">🚪 Sair</button>
     <button class="btn btn-add"     onclick="openAddModal()">＋ Adicionar Cliente</button>
     <button class="btn btn-servers" onclick="openServersModal()">🖥️ Gerenciar Servidores</button>
     <button class="btn btn-export"  onclick="exportCSV()">⬇ Exportar CSV</button>
@@ -608,10 +611,6 @@ function saveData(){
   }
 }
 
-
-try {
-  localStorage.removeItem(LS_KEY);
-} catch(e){}
 
 function loadData(){
   try {
