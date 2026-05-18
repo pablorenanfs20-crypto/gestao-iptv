@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - NexClients</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+      font-family:Arial,sans-serif;
+    }
+
+    body{
+      min-height:100vh;
+      background:linear-gradient(135deg,#0f172a,#1e293b);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .login-box{
+      width:100%;
+      max-width:380px;
+      background:#fff;
+      padding:30px;
+      border-radius:18px;
+      box-shadow:0 20px 50px rgba(0,0,0,.3);
+    }
+
+    h1{
+      text-align:center;
+      margin-bottom:10px;
+      color:#1e293b;
+    }
+
+    p{
+      text-align:center;
+      color:#64748b;
+      margin-bottom:25px;
+    }
+
+    label{
+      display:block;
+      margin-bottom:6px;
+      font-size:14px;
+      color:#334155;
+      font-weight:bold;
+    }
+
+    input{
+      width:100%;
+      padding:12px;
+      border:1px solid #cbd5e1;
+      border-radius:10px;
+      margin-bottom:16px;
+      font-size:15px;
+    }
+
+    button{
+      width:100%;
+      padding:13px;
+      border:none;
+      border-radius:10px;
+      background:#2563eb;
+      color:#fff;
+      font-size:15px;
+      font-weight:bold;
+      cursor:pointer;
+    }
+
+    button:hover{
+      background:#1d4ed8;
+    }
+
+    .erro{
+      margin-top:15px;
+      text-align:center;
+      color:#dc2626;
+      display:none;
+    }
+
+    .sucesso{
+      margin-top:15px;
+      text-align:center;
+      color:#16a34a;
+      display:none;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="login-box">
+
+  <h1>NexClients</h1>
+  <p>Entre para acessar seu painel</p>
+
+  <label>Email</label>
+  <input type="email" id="email" placeholder="Digite seu email">
+
+  <label>Senha</label>
+  <input type="password" id="senha" placeholder="Digite sua senha">
+
+  <button onclick="fazerLogin()">Entrar</button>
+
+  <div class="erro" id="erro"></div>
+  <div class="sucesso" id="sucesso"></div>
+
+</div>
+
+<script>
+
+const SUPABASE_URL = "https://tfhwwasxecqkyccprupc.supabase.co";
+
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRmaHd3YXN4ZWNxa3ljY3BydXBjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDY0MTQsImV4cCI6MjA5NDYyMjQxNH0.5K-tzFe7DuUT7nQqJOd183nHyCYD3g979xoLH-VA0qw";
+
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+async function fazerLogin(){
+
+  const email = document.getElementById("email").value;
+  const senha = document.getElementById("senha").value;
+
+  const erro = document.getElementById("erro");
+  const sucesso = document.getElementById("sucesso");
+
+  erro.style.display = "none";
+  sucesso.style.display = "none";
+
+  if(!email || !senha){
+    erro.innerText = "Preencha email e senha.";
+    erro.style.display = "block";
+    return;
+  }
+
+  const { data, error } = await supabaseClient.auth.signInWithPassword({
+    email: email,
+    password: senha
+  });
+
+  if(error){
+    erro.innerText = "Email ou senha inválidos.";
+    erro.style.display = "block";
+    return;
+  }
+
+  sucesso.innerText = "Login realizado com sucesso!";
+  sucesso.style.display = "block";
+
+  localStorage.setItem("usuario_logado", JSON.stringify(data.user));
+
+  setTimeout(() => {
+    window.location.href = "/";
+  }, 1000);
+
+}
+
+</script>
+
+</body>
+</html>
