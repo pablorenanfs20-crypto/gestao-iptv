@@ -1,0 +1,1515 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NexClients</title>
+<style>
+  :root {
+    --blue:#2563EB; --dark:#1B2A4A; --green:#16A34A;
+    --red:#DC2626; --orange:#EA580C; --yellow:#CA8A04;
+    --bg:#F1F5F9; --card:#FFFFFF; --border:#E2E8F0; --text:#1E293B; --muted:#64748B;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);}
+
+  /* HEADER */
+  header{background:var(--dark);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+  header h1{color:#fff;font-size:1.15rem;display:flex;align-items:center;gap:8px;}
+  .header-btns{display:flex;gap:8px;flex-wrap:wrap;}
+
+  /* CARDS */
+  .summary{display:flex;gap:12px;padding:18px 24px 0;flex-wrap:wrap;}
+  .card{background:var(--card);border-radius:12px;padding:14px 18px;flex:1;min-width:130px;border:1px solid var(--border);box-shadow:0 1px 4px rgba(0,0,0,.06);}
+  .card .label{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+  .card .value{font-size:1.5rem;font-weight:700;margin-top:4px;}
+  .card.blue .value{color:var(--blue);} .card.green .value{color:var(--green);}
+  .card.red .value{color:var(--red);}   .card.orange .value{color:var(--orange);}
+
+  /* RESUMO SERVIDORES */
+  .srv-summary{padding:14px 24px 0;}
+  .srv-summary-title{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+  .srv-cards{display:flex;gap:12px;flex-wrap:wrap;}
+  .srv-card{flex:1;min-width:180px;border-radius:12px;padding:14px 16px;border:1.5px solid transparent;box-shadow:0 1px 4px rgba(0,0,0,.06);position:relative;overflow:hidden;transition:transform .15s,box-shadow .15s;cursor:default;}
+  .srv-card:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.1);}
+  .srv-card-name{font-size:.8rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
+  .srv-card-name .cli-count{font-size:.7rem;font-weight:600;padding:2px 8px;border-radius:20px;opacity:.85;}
+  .srv-card-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+  .srv-card-lbl{font-size:.72rem;color:inherit;opacity:.75;font-weight:500;}
+  .srv-card-val{font-size:.82rem;font-weight:700;}
+  .srv-card-divider{height:1px;opacity:.2;margin:8px 0;background:currentColor;}
+  .srv-card-receita{font-size:1.2rem;font-weight:800;margin-top:4px;}
+  .srv-card-bar-wrap{margin-top:10px;background:rgba(255,255,255,.3);border-radius:10px;height:5px;overflow:hidden;}
+  .srv-card-bar{height:5px;border-radius:10px;background:currentColor;transition:width .4s ease;}
+
+  /* FILTROS */
+  .filters{display:flex;gap:10px;padding:14px 24px 0;flex-wrap:wrap;align-items:center;}
+  .filters input,.filters select{border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:.875rem;background:#fff;color:var(--text);outline:none;transition:border-color .2s;}
+  .filters input:focus,.filters select:focus{border-color:var(--blue);}
+  .filters input{flex:1;min-width:200px;}
+
+  /* TABELA */
+  .table-wrap{padding:14px 24px 32px;overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;background:var(--card);border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+  thead tr{background:var(--blue);}
+  thead th{color:#fff;font-size:.76rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding:12px 10px;text-align:center;white-space:nowrap;}
+  tbody tr{border-bottom:1px solid var(--border);transition:background .15s;}
+  tbody tr:hover{background:#F8FAFC;}
+  tbody td{padding:9px 10px;font-size:.84rem;text-align:center;vertical-align:middle;}
+  tbody td.nome{text-align:left;font-weight:500;}
+
+  /* STATUS */
+  .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:.73rem;font-weight:600;white-space:nowrap;}
+  .badge.em-dia{background:#DCFCE7;color:#15803D;} .badge.breve{background:#FEF9C3;color:#A16207;}
+  .badge.urgente{background:#FFEDD5;color:#C2410C;} .badge.vencido{background:#FEE2E2;color:#DC2626;}
+
+  /* SERVIDOR BADGE — gerado dinamicamente */
+  .srv{display:inline-block;padding:2px 10px;border-radius:6px;font-size:.75rem;font-weight:700;letter-spacing:.03em;}
+
+  /* BOTÕES */
+  .btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:8px;border:none;cursor:pointer;font-size:.82rem;font-weight:600;transition:filter .15s,transform .1s;}
+  .btn:hover{filter:brightness(.92);transform:translateY(-1px);}
+  .btn:active{transform:translateY(0);}
+  .btn-add{background:var(--green);color:#fff;}
+  .btn-servers{background:#7C3AED;color:#fff;}
+  .btn-export{background:#0F766E;color:#fff;}
+  .btn-backup{background:#475569;color:#fff;}
+  .btn-import{background:#7C3AED;color:#fff;}
+
+  /* MODAL BACKUP */
+  .backup-tabs{display:flex;gap:0;margin-bottom:16px;border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+  .backup-tab{flex:1;padding:9px;text-align:center;cursor:pointer;font-size:.82rem;font-weight:600;background:#F8FAFC;color:var(--muted);transition:all .15s;border:none;}
+  .backup-tab.active{background:var(--blue);color:#fff;}
+  .json-box{background:#1E293B;color:#86EFAC;border-radius:10px;padding:14px;font-family:monospace;font-size:.75rem;max-height:220px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;border:none;width:100%;resize:vertical;outline:none;}
+  .save-indicator{display:inline-flex;align-items:center;gap:5px;font-size:.72rem;color:#94A3B8;padding:4px 10px;border-radius:20px;background:rgba(255,255,255,.08);}
+  .save-indicator.saved{color:#86EFAC;} .save-indicator.saving{color:#FCD34D;}
+  .btn-edit{background:var(--blue);color:#fff;padding:5px 10px;font-size:.74rem;}
+  .btn-del{background:var(--red);color:#fff;padding:5px 10px;font-size:.74rem;}
+  .btn-renew{background:#0F766E;color:#fff;padding:5px 10px;font-size:.74rem;}
+  .btn-aviso{background:#7C3AED;color:#fff;padding:5px 10px;font-size:.74rem;}
+
+  /* MODAL AVISOS */
+  .wpp-preview{background:#ECE5DD;border-radius:12px;padding:14px 16px;margin:10px 0;font-family:'Segoe UI',sans-serif;font-size:.88rem;position:relative;}
+  .wpp-preview::before{content:'';position:absolute;top:10px;left:-8px;border:8px solid transparent;border-right-color:#ECE5DD;}
+  .wpp-bubble{background:#fff;border-radius:0 10px 10px 10px;padding:10px 14px;box-shadow:0 1px 3px rgba(0,0,0,.12);white-space:pre-wrap;line-height:1.5;color:#111;font-size:.85rem;}
+  .wpp-time{text-align:right;font-size:.7rem;color:#94A3B8;margin-top:4px;}
+  /* ABAS DE CATEGORIA */
+  .aviso-cats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+  .aviso-cat{padding:7px 14px;border-radius:20px;border:1.5px solid var(--border);background:#fff;color:var(--muted);cursor:pointer;font-size:.78rem;font-weight:600;transition:all .15s;display:flex;align-items:center;gap:4px;}
+  .aviso-cat:hover{border-color:#7C3AED;color:#7C3AED;}
+  .aviso-cat.active{color:#fff;border-color:transparent;}
+  .aviso-cat.cat-cobr.active{background:#DC2626;}
+  .aviso-cat.cat-stab.active{background:#F59E0B;}
+  .aviso-cat.cat-info.active{background:#2563EB;}
+  .aviso-cat.cat-promo.active{background:#16A34A;}
+  .aviso-cat.cat-pgto.active{background:#0F766E;}
+  /* CHIPS DE TEMPLATE */
+  .tpl-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+  .tpl-chip{padding:5px 11px;border-radius:8px;border:1.5px solid #E2E8F0;background:#F8FAFC;color:var(--text);cursor:pointer;font-size:.76rem;font-weight:600;transition:all .15s;white-space:nowrap;}
+  .tpl-chip:hover{border-color:#7C3AED;color:#7C3AED;}
+  .tpl-chip.active{background:#7C3AED;color:#fff;border-color:#7C3AED;}
+  .btn-cancel{background:var(--border);color:var(--text);}
+  .btn-save{background:var(--blue);color:#fff;}
+  .btn-danger{background:var(--red);color:#fff;}
+
+  /* MODAL */
+  .overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:opacity .2s;}
+  .overlay.open{opacity:1;pointer-events:all;}
+  .modal{background:#fff;border-radius:16px;padding:26px;width:540px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);transform:translateY(20px);transition:transform .2s;}
+  .overlay.open .modal{transform:translateY(0);}
+  .modal h2{font-size:1.05rem;color:var(--dark);margin-bottom:18px;display:flex;align-items:center;gap:8px;}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;}
+  .form-group{display:flex;flex-direction:column;gap:5px;}
+  .form-group.full{grid-column:1/-1;}
+  .form-group label{font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
+  .form-group input,.form-group select,.form-group textarea{border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:.875rem;color:var(--text);outline:none;transition:border-color .2s;}
+  .form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--blue);}
+  .modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;}
+
+  /* MODAL SERVIDORES */
+  .modal-servers{width:520px;}
+  .srv-list{display:flex;flex-direction:column;gap:10px;margin-bottom:20px;}
+  .srv-item{display:flex;align-items:center;gap:10px;background:#F8FAFC;border:1px solid var(--border);border-radius:10px;padding:10px 14px;}
+  .srv-item .srv-preview{width:18px;height:18px;border-radius:4px;flex-shrink:0;}
+  .srv-item .srv-name{flex:1;font-weight:600;font-size:.9rem;}
+  .srv-item .srv-count{font-size:.78rem;color:var(--muted);margin-right:6px;}
+  .srv-item .btn-edit-srv{background:#EFF6FF;color:var(--blue);border:1px solid #BFDBFE;padding:4px 10px;font-size:.75rem;border-radius:6px;cursor:pointer;font-weight:600;}
+  .srv-item .btn-del-srv{background:#FEF2F2;color:var(--red);border:1px solid #FECACA;padding:4px 10px;font-size:.75rem;border-radius:6px;cursor:pointer;font-weight:600;}
+  .add-srv-form{border:1.5px dashed var(--border);border-radius:10px;padding:14px;background:#FAFAFA;}
+  .add-srv-form h3{font-size:.85rem;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:.04em;}
+  .add-srv-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;}
+  .add-srv-row .form-group{flex:1;min-width:120px;}
+  .color-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
+  .color-opt{width:28px;height:28px;border-radius:6px;cursor:pointer;border:3px solid transparent;transition:border-color .15s;}
+  .color-opt.selected{border-color:var(--dark);}
+
+  /* CONFIRM MODAL */
+  .confirm-modal{max-width:380px;text-align:center;}
+  .confirm-modal p{color:var(--muted);margin:10px 0 20px;font-size:.9rem;}
+
+  /* TOAST */
+  .toast{position:fixed;bottom:26px;right:26px;background:var(--dark);color:#fff;padding:11px 18px;border-radius:10px;font-size:.875rem;font-weight:500;transform:translateY(80px);opacity:0;transition:all .3s;z-index:300;display:flex;align-items:center;gap:8px;}
+  .toast.show{transform:translateY(0);opacity:1;}
+  .toast.success{background:var(--green);} .toast.error{background:var(--red);}
+
+  /* NOTIFICAÇÃO VENCIDOS */
+  .alert-overlay{position:fixed;inset:0;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;z-index:400;opacity:0;pointer-events:none;transition:opacity .25s;}
+  .alert-overlay.open{opacity:1;pointer-events:all;}
+  .alert-modal{background:#fff;border-radius:18px;width:580px;max-width:96vw;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 24px 70px rgba(0,0,0,.3);transform:translateY(24px);transition:transform .25s;overflow:hidden;}
+  .alert-overlay.open .alert-modal{transform:translateY(0);}
+  .alert-header{background:linear-gradient(135deg,#DC2626,#9B1C1C);padding:20px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+  .alert-header h2{color:#fff;font-size:1.05rem;display:flex;align-items:center;gap:8px;}
+  .alert-header .alert-badge{background:rgba(255,255,255,.25);color:#fff;border-radius:20px;padding:3px 12px;font-size:.8rem;font-weight:700;}
+  .alert-body{overflow-y:auto;padding:16px 20px;flex:1;}
+  .alert-section-title{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:6px 0 8px;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--border);margin-bottom:10px;}
+  .alert-section-title.red{color:var(--red);} .alert-section-title.orange{color:var(--orange);} .alert-section-title.yellow{color:var(--yellow);}
+  .alert-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;margin-bottom:6px;transition:background .15s;}
+  .alert-row:hover{background:#F8FAFC;}
+  .alert-row .ar-name{flex:1;font-weight:600;font-size:.87rem;color:var(--text);}
+  .alert-row .ar-srv{font-size:.73rem;font-weight:700;padding:2px 8px;border-radius:6px;}
+  .alert-row .ar-date{font-size:.78rem;color:var(--muted);min-width:80px;text-align:right;}
+  .alert-row .ar-dias{font-size:.78rem;font-weight:700;min-width:64px;text-align:right;}
+  .ar-dias.neg{color:var(--red);} .ar-dias.warn{color:var(--orange);} .ar-dias.soon{color:var(--yellow);}
+  .alert-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-shrink:0;background:#FAFAFA;flex-wrap:wrap;}
+  .alert-footer label{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--muted);cursor:pointer;}
+  .alert-footer input[type=checkbox]{accent-color:var(--blue);width:15px;height:15px;cursor:pointer;}
+  .alert-empty{text-align:center;padding:28px 0;color:var(--muted);font-size:.9rem;}
+  .btn-wpp-renovar{background:#25D366;color:#fff;padding:4px 9px;font-size:.72rem;border-radius:6px;border:none;cursor:pointer;font-weight:700;white-space:nowrap;transition:filter .15s;}
+  .btn-wpp-renovar:hover{filter:brightness(.88);}
+  .alert-mass-bar{display:flex;gap:8px;padding:10px 12px;background:#F0FDF4;border-radius:10px;margin-bottom:12px;align-items:center;flex-wrap:wrap;border:1.5px solid #BBF7D0;}
+  .alert-mass-bar span{flex:1;font-size:.8rem;color:#15803D;font-weight:600;}
+
+  /* MODAL INSTABILIDADE */
+  .insta-overlay{position:fixed;inset:0;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;z-index:500;opacity:0;pointer-events:none;transition:opacity .2s;}
+  .insta-overlay.open{opacity:1;pointer-events:all;}
+  .insta-modal{background:#fff;border-radius:16px;width:560px;max-width:96vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);transform:translateY(20px);transition:transform .2s;padding:26px;}
+  .insta-overlay.open .insta-modal{transform:translateY(0);}
+  .insta-tpl-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+  .insta-tpl-btn{padding:6px 12px;border-radius:8px;border:1.5px solid #F59E0B;background:#fff;color:#92400E;cursor:pointer;font-size:.78rem;font-weight:600;transition:all .15s;}
+  .insta-tpl-btn:hover,.insta-tpl-btn.active{background:#F59E0B;color:#fff;}
+  .progress-bar-wrap{background:#E2E8F0;border-radius:10px;height:8px;margin:10px 0 4px;overflow:hidden;display:none;}
+  .progress-bar{height:8px;background:var(--green);border-radius:10px;width:0%;transition:width .3s;}
+  .send-log{background:#1E293B;color:#86EFAC;border-radius:10px;padding:12px;font-family:monospace;font-size:.75rem;max-height:160px;overflow-y:auto;white-space:pre-wrap;display:none;margin-top:8px;}
+
+  .dias-neg{color:var(--red);font-weight:700;} .dias-ok{color:var(--green);font-weight:600;}
+  @media(max-width:600px){.summary,.filters,.table-wrap{padding-left:12px;padding-right:12px;}.form-grid{grid-template-columns:1fr;}}
+</style>
+<script>
+const usuario = localStorage.getItem("usuario_logado");
+
+if (!usuario) {
+  window.location.href = "/login.html";
+}
+
+
+function editarAviso(){
+  const atual = localStorage.getItem('mensagem_aviso') || '';
+
+  const msg = prompt(
+`Digite a mensagem de aviso do sistema.
+
+Exemplo:
+⚠️ Sistema em manutenção hoje às 22h.`,
+atual
+  );
+
+  if(msg === null) return;
+
+  if(msg.trim() === ''){
+    localStorage.removeItem('mensagem_aviso');
+    alert('Mensagem removida!');
+  } else {
+    localStorage.setItem('mensagem_aviso', msg);
+    alert('Mensagem salva!');
+  }
+
+  mostrarAvisoSistema();
+}
+
+function mostrarAvisoSistema(){
+  let aviso = document.getElementById('bannerAviso');
+
+  if(!aviso){
+    aviso = document.createElement('div');
+    aviso.id = 'bannerAviso';
+    aviso.style.background = '#FEF3C7';
+    aviso.style.color = '#92400E';
+    aviso.style.padding = '12px';
+    aviso.style.margin = '15px 24px';
+    aviso.style.borderRadius = '10px';
+    aviso.style.fontWeight = 'bold';
+
+    const header = document.querySelector('header');
+    header.insertAdjacentElement('afterend', aviso);
+  }
+
+  const msg = localStorage.getItem('mensagem_aviso');
+
+  if(msg){
+    aviso.innerText = msg;
+    aviso.style.display = 'block';
+  } else {
+    aviso.style.display = 'none';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(mostrarAvisoSistema, 300);
+});
+
+</script>
+
+<script>
+const usuario = localStorage.getItem("usuario_logado");
+
+if (!usuario) {
+  window.location.href = "/login.html";
+}
+</script>
+
+</head>
+<body>
+
+<header>
+  <h1>🎬 Gestão de Mensalidades IPTV</h1>
+  <div class="header-btns" style="margin-left:auto;">
+    <button class="btn" style="background:#DC2626;color:#fff" onclick="logout()">🚪 Sair</button>
+    <button class="btn btn-add"     onclick="openAddModal()">＋ Adicionar Cliente</button>
+    <button class="btn btn-servers" onclick="openServersModal()">🖥️ Gerenciar Servidores</button>
+
+<button class="btn" style="background:#16A34A;color:#fff;" onclick="editarAviso()">📢 Aviso Sistema</button>
+
+    <button class="btn btn-export"  onclick="exportCSV()">⬇ Exportar CSV</button>
+    <button class="btn btn-backup"  onclick="openBackupModal()">💾 Backup / Importar</button>
+    <button class="btn" style="background:#16A34A;color:#fff" onclick="manualSave()">💾 Salvar Alterações</button>
+    <button class="btn" style="background:#F59E0B;color:#fff" onclick="openInstaModal()">🚨 Avisar Instabilidade</button>
+    <span class="save-indicator" id="saveIndicator">⬤ Carregando...</span>
+  </div>
+</header>
+
+<div class="summary">
+  <div class="card blue">  <div class="label">Total Clientes</div> <div class="value" id="cTotal">—</div></div>
+  <div class="card green"> <div class="label">Receita Mensal</div> <div class="value" id="cReceita">—</div></div>
+  <div class="card red">   <div class="label">Vencidos</div>       <div class="value" id="cVencidos">—</div></div>
+  <div class="card orange"><div class="label">Vencem em 7 dias</div><div class="value" id="cBreve">—</div></div>
+</div>
+
+<!-- RESUMO POR SERVIDOR -->
+<div class="srv-summary">
+  <div class="srv-summary-title">🖥️ Receita por Servidor</div>
+  <div class="srv-cards" id="srvCards"></div>
+</div>
+
+<div class="filters">
+  <input type="text" id="search" placeholder="🔍  Buscar cliente..." oninput="renderTable()"/>
+  <select id="filterSrv" onchange="renderTable()">
+    <option value="">Todos os Servidores</option>
+  </select>
+  <select id="filterStatus" onchange="renderTable()">
+    <option value="">Todos os Status</option>
+    <option value="em-dia">✅ Em Dia</option>
+    <option value="breve">🔔 Vence em Breve</option>
+    <option value="urgente">⚠️ Urgente</option>
+    <option value="vencido">⛔ Vencido</option>
+  </select>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>#</th><th>Nome do Cliente</th><th>Servidor</th>
+        <th>Último Pgto</th><th>Próx. Vencimento</th><th>Dias</th>
+        <th>Valor</th><th>Status</th><th>Plano</th><th>Contato</th><th>Ações</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<!-- MODAL CLIENTE -->
+<div class="overlay" id="formOverlay" onclick="closeIfBg(event,'formOverlay')">
+  <div class="modal">
+    <h2 id="modalTitle">➕ Novo Cliente</h2>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>Nome do Cliente *</label>
+        <input id="fNome" type="text" placeholder="Ex: João Silva"/>
+      </div>
+      <div class="form-group">
+        <label>Servidor *</label>
+        <select id="fServidor"></select>
+      </div>
+      <div class="form-group">
+        <label>Plano</label>
+        <select id="fPlano">
+          <option>Mensal</option><option>Bimestral</option>
+          <option>Trimestral</option><option>Semestral</option><option>Anual</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Último Pagamento *</label>
+        <input id="fUltPgto" type="date"/>
+      </div>
+      <div class="form-group">
+        <label>Próx. Vencimento *</label>
+        <input id="fProxVenc" type="date"/>
+      </div>
+      <div class="form-group">
+        <label>Valor (R$) *</label>
+        <input id="fValor" type="number" step="0.01" min="0" placeholder="30.00"/>
+      </div>
+      <div class="form-group">
+        <label>Contato (WhatsApp)</label>
+        <input id="fContato" type="text" placeholder="(00) 00000-0000"/>
+      </div>
+      <div class="form-group full">
+        <label>Observações</label>
+        <textarea id="fObs" rows="2" placeholder="Notas extras..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Ativo?</label>
+        <select id="fAtivo"><option>Sim</option><option>Não</option></select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-cancel" onclick="closeModal('formOverlay')">Cancelar</button>
+      <button class="btn btn-save"   onclick="saveClient()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SERVIDORES -->
+<div class="overlay" id="srvOverlay" onclick="closeIfBg(event,'srvOverlay')">
+  <div class="modal modal-servers">
+    <h2>🖥️ Gerenciar Servidores</h2>
+    <div class="srv-list" id="srvList"></div>
+    <div class="add-srv-form">
+      <h3 id="srvFormTitle">➕ Novo Servidor</h3>
+      <div class="add-srv-row">
+        <div class="form-group" style="flex:2">
+          <label>Nome do Servidor *</label>
+          <input id="srvName" type="text" placeholder="Ex: MEGA"/>
+        </div>
+      </div>
+      <div style="margin-top:10px">
+        <label style="font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px;">Cor</label>
+        <div class="color-row" id="colorRow"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-cancel" onclick="cancelSrvEdit()">Cancelar</button>
+      <button class="btn btn-save"   id="srvSaveBtn" onclick="saveServer()">➕ Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RENOVAR MENSALIDADE -->
+<div class="overlay" id="renewOverlay" onclick="closeIfBg(event,'renewOverlay')">
+  <div class="modal" style="max-width:460px">
+    <h2>🔄 Renovar Mensalidade</h2>
+    <p id="renewMsg" style="font-size:.88rem;color:var(--muted);margin-bottom:14px"></p>
+
+    <!-- DADOS ATUAIS -->
+    <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div>
+        <div style="font-size:.72rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Atual: Últ. Pagamento</div>
+        <div id="renewCurPgto" style="font-size:.88rem;font-weight:600;color:var(--text)"></div>
+      </div>
+      <div>
+        <div style="font-size:.72rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Atual: Vencimento</div>
+        <div id="renewCurVenc" style="font-size:.88rem;font-weight:600;color:var(--red)"></div>
+      </div>
+    </div>
+
+    <!-- NOVO PAGAMENTO -->
+    <div style="margin-bottom:12px">
+      <label style="font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px">Data do Pagamento</label>
+      <input type="date" id="renewPgtoDate" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:.875rem;outline:none;transition:border-color .2s"
+        onfocus="this.style.borderColor='#16A34A'" onblur="this.style.borderColor='var(--border)'"
+        oninput="document.getElementById('renewVencDate').value=addDays(this.value,renewDays);updateRenewPreview()"/>
+    </div>
+
+    <!-- ATALHOS DE PRAZO -->
+    <div style="margin-bottom:8px">
+      <label style="font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px">Prazo de Vencimento</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px" id="renewDaysBtns"></div>
+    </div>
+
+    <!-- DATA MANUAL DE VENCIMENTO -->
+    <div style="margin-bottom:14px">
+      <label style="font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px">Ou escolha a data exata de vencimento</label>
+      <input type="date" id="renewVencDate" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:.875rem;outline:none;transition:border-color .2s"
+        onfocus="this.style.borderColor='#16A34A'" onblur="this.style.borderColor='var(--border)'" oninput="onRenewDatePick()"/>
+    </div>
+
+    <!-- PRÉVIA -->
+    <div style="background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:10px;padding:12px 14px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div>
+        <div style="font-size:.72rem;color:#15803D;font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">✅ Novo Pagamento</div>
+        <div id="renewUltPgto" style="font-weight:700;color:#15803D;font-size:1rem"></div>
+      </div>
+      <div>
+        <div style="font-size:.72rem;color:#15803D;font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">✅ Novo Vencimento</div>
+        <div id="renewProxVenc" style="font-weight:700;color:#15803D;font-size:1rem"></div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-cancel" onclick="closeModal('renewOverlay')">Cancelar</button>
+      <button class="btn" style="background:#16A34A;color:#fff;padding:9px 20px" onclick="confirmRenew()">✅ Confirmar Renovação</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL INSTABILIDADE -->
+<div class="insta-overlay" id="instaOverlay" onclick="closeIfBg(event,'instaOverlay')">
+  <div class="insta-modal">
+    <h2 style="margin-bottom:16px">🚨 Avisar Clientes — Instabilidade / Problema</h2>
+    <div style="margin-bottom:10px">
+      <label style="font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px">Modelo de mensagem</label>
+      <div class="insta-tpl-row" id="instaTplBtns"></div>
+    </div>
+    <div>
+      <label style="font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px">Mensagem</label>
+      <textarea id="instaMsg" rows="5" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:10px;font-size:.85rem;resize:vertical;outline:none;font-family:'Segoe UI',sans-serif"></textarea>
+    </div>
+    <div style="margin-top:12px;background:#FEF3C7;border:1.5px solid #FCD34D;border-radius:10px;padding:12px">
+      <div style="font-size:.78rem;font-weight:700;color:#92400E;margin-bottom:8px">📤 Enviar para:</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;cursor:pointer">
+          <input type="radio" name="instaTarget" value="todos" checked onchange="updateInstaCount()"/> Todos com WhatsApp
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;cursor:pointer">
+          <input type="radio" name="instaTarget" value="srv"/> Por servidor:
+          <select id="instaTargetSrv" style="border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:.8rem" onchange="updateInstaCount()"></select>
+        </label>
+      </div>
+      <div id="instaCount" style="font-size:.78rem;color:#92400E;margin-top:8px;font-weight:600"></div>
+    </div>
+    <div class="progress-bar-wrap" id="instaProgressWrap">
+      <div class="progress-bar" id="instaProgressBar"></div>
+    </div>
+    <div class="send-log" id="instaLog"></div>
+    <div class="modal-footer" style="margin-top:16px">
+      <button class="btn btn-cancel" onclick="closeModal('instaOverlay')">Fechar</button>
+      <button class="btn" style="background:#F59E0B;color:#fff" onclick="sendInstaToAll()">🚨 Abrir WhatsApp p/ cada um</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL BACKUP / IMPORTAR -->
+<div class="overlay" id="backupOverlay" onclick="closeIfBg(event,'backupOverlay')">
+  <div class="modal" style="width:560px">
+    <h2>💾 Backup & Importar Dados</h2>
+    <div class="backup-tabs">
+      <button class="backup-tab active" id="tabExport" onclick="switchBackupTab('export')">📤 Exportar / Backup</button>
+      <button class="backup-tab"        id="tabImport" onclick="switchBackupTab('import')">📥 Importar JSON</button>
+    </div>
+
+    <!-- EXPORTAR -->
+    <div id="panelExport">
+      <p style="font-size:.85rem;color:var(--muted);margin-bottom:10px">Copie ou baixe o JSON com todos os seus dados. Use para fazer backup ou transferir para outro dispositivo.</p>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <button class="btn btn-save" style="font-size:.8rem;padding:6px 12px" onclick="copyBackupJSON()">📋 Copiar JSON</button>
+        <button class="btn btn-backup" style="font-size:.8rem;padding:6px 12px" onclick="downloadBackupJSON()">⬇ Baixar arquivo .json</button>
+      </div>
+      <textarea class="json-box" id="exportBox" readonly rows="9"></textarea>
+      <p style="font-size:.75rem;color:var(--muted);margin-top:8px">💡 Salve este arquivo em local seguro. Para restaurar, use a aba <strong>Importar JSON</strong>.</p>
+    </div>
+
+    <!-- IMPORTAR -->
+    <div id="panelImport" style="display:none">
+      <p style="font-size:.85rem;color:var(--muted);margin-bottom:10px">Cole o JSON de um backup anterior ou carregue um arquivo <code>.json</code>. <strong style="color:var(--red)">⚠️ Os dados atuais serão substituídos.</strong></p>
+      <div style="margin-bottom:8px">
+        <label style="font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px">Carregar arquivo .json</label>
+        <input type="file" id="importFile" accept=".json,application/json" onchange="loadImportFile()" style="font-size:.82rem;width:100%"/>
+      </div>
+      <label style="font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px">Ou cole o JSON aqui</label>
+      <textarea class="json-box" id="importBox" rows="9" placeholder='{ "clients": [...], "servers": [...], "nextId": 44 }' style="color:#93C5FD"></textarea>
+      <div id="importError" style="color:var(--red);font-size:.8rem;margin-top:6px;display:none"></div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-cancel" onclick="closeModal('backupOverlay')">Fechar</button>
+      <button class="btn btn-import" id="importBtn" onclick="importJSON()" style="display:none">📥 Importar e Substituir</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AVISOS -->
+<div class="overlay" id="whatsOverlay" onclick="closeIfBg(event,'whatsOverlay')">
+  <div class="modal" style="width:580px">
+    <h2 id="avisoTitle">📣 Avisos para <span id="avisoNomeCliente"></span></h2>
+
+    <!-- CATEGORIAS -->
+    <div class="aviso-cats">
+      <button class="aviso-cat cat-cobr active" onclick="selectCat('cobr')">💰 Cobrança</button>
+      <button class="aviso-cat cat-stab"        onclick="selectCat('stab')">⚠️ Instabilidade</button>
+      <button class="aviso-cat cat-info"        onclick="selectCat('info')">ℹ️ Informações</button>
+      <button class="aviso-cat cat-promo"       onclick="selectCat('promo')">🎉 Promoção</button>
+      <button class="aviso-cat cat-pgto"        onclick="selectCat('pgto')">✅ Pgto Confirmado</button>
+    </div>
+
+    <!-- CHIPS DE TEMPLATES -->
+    <div>
+      <label style="font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px">Modelos prontos</label>
+      <div class="tpl-chips" id="avisoChips"></div>
+    </div>
+
+    <!-- TEXTAREA -->
+    <div style="margin-top:4px">
+      <label style="font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px">Mensagem <span style="font-weight:400;text-transform:none;letter-spacing:0">(editável)</span></label>
+      <textarea id="whatsMsg" rows="5" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:10px;font-size:.85rem;resize:vertical;outline:none;font-family:'Segoe UI',sans-serif;transition:border-color .2s" oninput="updateWppPreview()" onfocus="this.style.borderColor='#7C3AED'" onblur="this.style.borderColor='var(--border)'"></textarea>
+    </div>
+
+    <!-- PRÉVIA -->
+    <div class="wpp-preview">
+      <div style="font-size:.68rem;color:#667781;margin-bottom:6px;font-weight:600">📱 PRÉVIA</div>
+      <div class="wpp-bubble" id="wppBubble"></div>
+      <div class="wpp-time" id="wppTime"></div>
+    </div>
+
+    <!-- NÚMERO -->
+    <div>
+      <label style="font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px">Número WhatsApp</label>
+      <input id="whatsNum" type="tel" placeholder="Ex: 5548999999999 (DDI+DDD+número, só números)" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:.875rem;outline:none"/>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-cancel" onclick="closeModal('whatsOverlay')">Cancelar</button>
+      <button class="btn" style="background:#25D366;color:#fff;font-size:.9rem;padding:9px 20px" onclick="sendWhats()">📲 Abrir WhatsApp</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR EXCLUSÃO CLIENTE -->
+<div class="overlay" id="delOverlay" onclick="closeIfBg(event,'delOverlay')">
+  <div class="modal confirm-modal">
+    <h2>🗑️ Remover Cliente</h2>
+    <p id="delMsg"></p>
+    <div class="modal-footer">
+      <button class="btn btn-cancel" onclick="closeModal('delOverlay')">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">Sim, Remover</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR EXCLUSÃO SERVIDOR -->
+<div class="overlay" id="delSrvOverlay" onclick="closeIfBg(event,'delSrvOverlay')">
+  <div class="modal confirm-modal">
+    <h2>🗑️ Remover Servidor</h2>
+    <p id="delSrvMsg"></p>
+    <div class="modal-footer">
+      <button class="btn btn-cancel" onclick="closeModal('delSrvOverlay')">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmDeleteServer()">Sim, Remover</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIFICAÇÃO DE VENCIDOS -->
+<div class="alert-overlay" id="alertOverlay">
+  <div class="alert-modal">
+    <div class="alert-header">
+      <h2>🔔 Atenção — Clientes com Pendências</h2>
+      <span class="alert-badge" id="alertBadgeCount"></span>
+    </div>
+    <div class="alert-body" id="alertBody"></div>
+    <div class="alert-footer">
+      <label>
+        <input type="checkbox" id="alertSuppressToday" onchange="suppressAlert()"/>
+        Não mostrar novamente hoje
+      </label>
+      <div style="display:flex;gap:8px">
+        <button class="btn" style="background:#FEE2E2;color:var(--red);font-size:.82rem;padding:7px 14px" onclick="filterVencidos()">⛔ Ver só vencidos</button>
+        <button class="btn" style="background:#25D366;color:#fff;font-size:.82rem;padding:7px 14px" onclick="sendRenewToAll()">💬 Avisar todos no WhatsApp</button>
+        <button class="btn btn-save" style="font-size:.82rem;padding:7px 16px" onclick="closeAlert()">Entendi ✓</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── PALETA DE CORES PARA SERVIDORES ──────────────────────────────
+const PALETTE = [
+  {bg:'#DBEAFE',fg:'#1D4ED8'},{bg:'#DCFCE7',fg:'#15803D'},{bg:'#FFEDD5',fg:'#C2410C'},
+  {bg:'#F3E8FF',fg:'#7E22CE'},{bg:'#FCE7F3',fg:'#BE185D'},{bg:'#FEF9C3',fg:'#A16207'},
+  {bg:'#CCFBF1',fg:'#0F766E'},{bg:'#E0E7FF',fg:'#3730A3'},{bg:'#FEE2E2',fg:'#991B1B'},
+  {bg:'#D1FAE5',fg:'#065F46'},{bg:'#FEF3C7',fg:'#92400E'},{bg:'#E8D5B7',fg:'#78350F'},
+];
+
+// ── SERVIDORES ────────────────────────────────────────────────────
+let servers = [
+  {id:'CLUB',  name:'CLUB',  color:PALETTE[0]},
+  {id:'VF',    name:'VF',    color:PALETTE[1]},
+  {id:'BLACK', name:'BLACK', color:PALETTE[2]},
+];
+
+// ── CLIENTES ─────────────────────────────────────────────────────
+let clients = [];
+
+
+// ── LOCALSTORAGE ─────────────────────────────────────────────────
+const LS_KEY = 'iptv_data_v1';
+let saveTimer = null;
+
+function manualSave(){
+  saveData();
+  showToast('💾 Alterações salvas com sucesso!','success');
+}
+
+function saveData(){
+  setSaveIndicator('saving');
+  try {
+    const payload = JSON.stringify({clients, servers, nextId});
+    localStorage.setItem(LS_KEY, payload);
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(()=>setSaveIndicator('saved'), 600);
+  } catch(e){
+    setSaveIndicator('error');
+    showToast('⚠️ Erro ao salvar: '+e.message,'error');
+  }
+}
+
+
+function loadData(){
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw) return false;
+    const d = JSON.parse(raw);
+    if(d.clients)  clients  = d.clients;
+    if(d.servers)  servers  = d.servers;
+    if(d.nextId)   nextId   = d.nextId;
+    return true;
+  } catch(e){ return false; }
+}
+
+function setSaveIndicator(state){
+  const el = document.getElementById('saveIndicator');
+  if(!el) return;
+  if(state==='saved')  { el.textContent='⬤ Salvo'; el.className='save-indicator saved'; }
+  if(state==='saving') { el.textContent='⬤ Salvando...'; el.className='save-indicator saving'; }
+  if(state==='load')   { el.textContent='⬤ Dados carregados'; el.className='save-indicator saved'; }
+  if(state==='error')  { el.textContent='⬤ Erro ao salvar'; el.className='save-indicator'; }
+}
+
+// Intercepta renderTable para auto-salvar
+const _origRenderTable = renderTable;
+// será redefinida abaixo após carregamento
+
+let nextId = 1;
+let editingClientId = null;
+let deletingClientId = null;
+let editingSrvId = null;   // id do servidor em edição no painel
+let deletingSrvId = null;
+let selectedColorIdx = 0;
+
+// ── UTILITÁRIOS ───────────────────────────────────────────────────
+const today = () => new Date().toISOString().slice(0,10);
+const diasParaVencer = v => {
+  const d = new Date(v+'T00:00:00'), t = new Date(today()+'T00:00:00');
+  return Math.round((d-t)/86400000);
+};
+const fmtDate = d => { if(!d) return '—'; const [y,m,dd]=d.split('-'); return `${dd}/${m}/${y}`; };
+const fmtMoney = v => 'R$ '+Number(v).toFixed(2).replace('.',',');
+const getStatus = dias => {
+  if(dias<0)  return {cls:'vencido', txt:'⛔ Vencido'};
+  if(dias<=3) return {cls:'urgente', txt:'⚠️ Urgente'};
+  if(dias<=7) return {cls:'breve',   txt:'🔔 Em Breve'};
+  return {cls:'em-dia', txt:'✅ Em Dia'};
+};
+const getSrv = id => servers.find(s=>s.id===id) || {name:id, color:PALETTE[0]};
+
+// ── RENDERIZAR TABELA ─────────────────────────────────────────────
+function renderTable(){
+  const search = document.getElementById('search').value.toLowerCase();
+  const fSrv   = document.getElementById('filterSrv').value;
+  const fStat  = document.getElementById('filterStatus').value;
+
+  // atualiza filtro servidor
+  const selSrv = document.getElementById('filterSrv');
+  const curVal = selSrv.value;
+  selSrv.innerHTML = '<option value="">Todos os Servidores</option>'
+    + servers.map(s=>`<option value="${s.id}"${s.id===curVal?' selected':''}>${s.name}</option>`).join('');
+
+  let filtered = clients.filter(c => {
+    const st = getStatus(diasParaVencer(c.proxVenc)).cls;
+    return (!search || c.nome.toLowerCase().includes(search)||c.contato.includes(search))
+        && (!fSrv   || c.servidor===fSrv)
+        && (!fStat  || st===fStat);
+  });
+
+  // cards
+  document.getElementById('cTotal').textContent   = clients.length;
+  document.getElementById('cReceita').textContent  = 'R$ '+clients.reduce((a,c)=>a+Number(c.valor),0).toFixed(2).replace('.',',');
+  document.getElementById('cVencidos').textContent = clients.filter(c=>diasParaVencer(c.proxVenc)<0).length;
+  document.getElementById('cBreve').textContent    = clients.filter(c=>{const d=diasParaVencer(c.proxVenc);return d>=0&&d<=7;}).length;
+  renderSrvCards();
+
+  const tbody = document.getElementById('tbody');
+  if(!filtered.length){
+    tbody.innerHTML=`<tr><td colspan="11" style="padding:32px;color:var(--muted);">Nenhum cliente encontrado.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = filtered.map((c,i)=>{
+    const dias = diasParaVencer(c.proxVenc);
+    const st   = getStatus(dias);
+    const srv  = getSrv(c.servidor);
+    const diasTxt = dias<0
+      ? `<span class="dias-neg">${dias}d</span>`
+      : `<span class="dias-ok">+${dias}d</span>`;
+    return `<tr>
+      <td>${i+1}</td>
+      <td class="nome">${c.nome}${c.ativo==='Não'?' <span style="color:#94A3B8;font-size:.7rem;">(inativo)</span>':''}</td>
+      <td><span class="srv" style="background:${srv.color.bg};color:${srv.color.fg}">${srv.name}</span></td>
+      <td>${fmtDate(c.ultPgto)}</td>
+      <td>${fmtDate(c.proxVenc)}</td>
+      <td>${diasTxt}</td>
+      <td style="text-align:right;font-weight:600;">${fmtMoney(c.valor)}</td>
+      <td><span class="badge ${st.cls}">${st.txt}</span></td>
+      <td style="font-size:.77rem;color:var(--muted)">${c.plano}</td>
+      <td style="font-size:.77rem">${c.contato||'—'}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-renew" onclick="openRenewModal(${c.id})" title="Renovar mensalidade">🔄</button>
+        <button class="btn btn-aviso" onclick="openAvisoModal(${c.id})" style="margin-left:4px" title="Enviar aviso">📣 Avisos</button>
+        <button class="btn btn-edit" onclick="openEditModal(${c.id})" style="margin-left:4px">✏️ Editar</button>
+        <button class="btn btn-del"  onclick="openDeleteModal(${c.id})" style="margin-left:4px">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── SELECTS DE SERVIDOR NOS FORMS ────────────────────────────────
+function rebuildServerSelects(){
+  const opts = servers.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  document.getElementById('fServidor').innerHTML = opts;
+}
+
+// ── MODAL CLIENTE ADD / EDIT ──────────────────────────────────────
+function openAddModal(){
+  editingClientId=null;
+  document.getElementById('modalTitle').textContent='➕ Novo Cliente';
+  clearForm();
+  document.getElementById('fUltPgto').value=today();
+  rebuildServerSelects();
+  document.getElementById('formOverlay').classList.add('open');
+}
+function openEditModal(id){
+  editingClientId=id;
+  const c=clients.find(x=>x.id===id);
+  document.getElementById('modalTitle').textContent='✏️ Editar Cliente';
+  rebuildServerSelects();
+  document.getElementById('fNome').value    =c.nome;
+  document.getElementById('fServidor').value=c.servidor;
+  document.getElementById('fPlano').value   =c.plano;
+  document.getElementById('fUltPgto').value =c.ultPgto;
+  document.getElementById('fProxVenc').value=c.proxVenc;
+  document.getElementById('fValor').value   =c.valor;
+  document.getElementById('fContato').value =c.contato;
+  document.getElementById('fObs').value     =c.obs;
+  document.getElementById('fAtivo').value   =c.ativo;
+  document.getElementById('formOverlay').classList.add('open');
+}
+function saveClient(){
+  const nome=document.getElementById('fNome').value.trim();
+  const ultPgto=document.getElementById('fUltPgto').value;
+  const proxVenc=document.getElementById('fProxVenc').value;
+  const valor=document.getElementById('fValor').value;
+  if(!nome||!ultPgto||!proxVenc||!valor){showToast('Preencha os campos obrigatórios (*)','error');return;}
+  const obj={nome,servidor:document.getElementById('fServidor').value,
+    plano:document.getElementById('fPlano').value,ultPgto,proxVenc,
+    valor:parseFloat(valor),contato:document.getElementById('fContato').value,
+    obs:document.getElementById('fObs').value,ativo:document.getElementById('fAtivo').value};
+  if(editingClientId){
+    const idx=clients.findIndex(c=>c.id===editingClientId);
+    clients[idx]={...clients[idx],...obj};
+    showToast('✅ Cliente atualizado!','success');
+  } else {
+    clients.push({id:nextId++,...obj});
+    showToast('✅ Cliente adicionado!','success');
+  }
+  closeModal('formOverlay');
+  saveData();
+  renderTable();
+}
+function clearForm(){
+  ['fNome','fUltPgto','fProxVenc','fValor','fContato','fObs'].forEach(f=>document.getElementById(f).value='');
+  document.getElementById('fPlano').value='Mensal';
+  document.getElementById('fAtivo').value='Sim';
+}
+
+// ── RENOVAR MENSALIDADE ──────────────────────────────────────────
+let renewingId = null;
+let renewDays  = 30;
+
+const PLANO_DIAS = {Mensal:30, Bimestral:60, Trimestral:90, Semestral:180, Anual:365};
+const PRAZO_OPTS = [7,15,30,60,90,180,365];
+const PRAZO_LABELS = {7:'7d',15:'15d',30:'1 mês',60:'2 meses',90:'3 meses',180:'6 meses',365:'1 ano'};
+
+function addDays(dateStr, days){
+  const d = new Date(dateStr+'T00:00:00');
+  d.setDate(d.getDate()+days);
+  return d.toISOString().slice(0,10);
+}
+
+function openRenewModal(id){
+  renewingId = id;
+  const c = clients.find(x=>x.id===id);
+  renewDays = PLANO_DIAS[c.plano] || 30;
+
+  // info do cliente
+  document.getElementById('renewMsg').innerHTML = `Renovar mensalidade de <strong>${c.nome}</strong>`;
+  document.getElementById('renewCurPgto').textContent = fmtDate(c.ultPgto);
+  document.getElementById('renewCurVenc').textContent = fmtDate(c.proxVenc);
+
+  // data de pagamento = hoje
+  document.getElementById('renewPgtoDate').value = today();
+
+  // botões de prazo
+  const btns = document.getElementById('renewDaysBtns');
+  btns.innerHTML = PRAZO_OPTS.map(d=>
+    `<button onclick="setRenewDays(${d})" id="rdBtn${d}" style="
+      padding:5px 11px;border-radius:8px;font-size:.78rem;font-weight:600;cursor:pointer;
+      border:1.5px solid ${d===renewDays?'#15803D':'#D1FAE5'};
+      background:${d===renewDays?'#16A34A':'#F0FDF4'};
+      color:${d===renewDays?'#fff':'#15803D'};
+      transition:all .15s">${PRAZO_LABELS[d]||d+'d'}</button>`
+  ).join('');
+
+  // data manual = hoje + renewDays
+  document.getElementById('renewVencDate').value = addDays(today(), renewDays);
+
+  updateRenewPreview();
+  document.getElementById('renewOverlay').classList.add('open');
+}
+
+function setRenewDays(d){
+  renewDays = d;
+  // atualiza estilos dos botões
+  PRAZO_OPTS.forEach(x=>{
+    const b = document.getElementById('rdBtn'+x);
+    if(!b) return;
+    b.style.background  = x===d ? '#16A34A' : '#F0FDF4';
+    b.style.color       = x===d ? '#fff'    : '#15803D';
+    b.style.borderColor = x===d ? '#15803D' : '#D1FAE5';
+  });
+  // sincroniza campo de data
+  const pgto = document.getElementById('renewPgtoDate').value || today();
+  document.getElementById('renewVencDate').value = addDays(pgto, d);
+  updateRenewPreview();
+}
+
+function onRenewDatePick(){
+  // se o usuário digitou/escolheu data manual, recalcula dias e desmarca atalhos
+  const pgto  = document.getElementById('renewPgtoDate').value || today();
+  const venc  = document.getElementById('renewVencDate').value;
+  if(!venc) return;
+  const diff = Math.round((new Date(venc+'T00:00:00') - new Date(pgto+'T00:00:00')) / 86400000);
+  renewDays = diff > 0 ? diff : 1;
+  // desmarca todos os botões
+  PRAZO_OPTS.forEach(x=>{
+    const b = document.getElementById('rdBtn'+x);
+    if(!b) return;
+    b.style.background  = '#F0FDF4';
+    b.style.color       = '#15803D';
+    b.style.borderColor = '#D1FAE5';
+  });
+  updateRenewPreview();
+}
+
+function updateRenewPreview(){
+  const pgto = document.getElementById('renewPgtoDate').value || today();
+  const venc = document.getElementById('renewVencDate').value || addDays(pgto, renewDays);
+  document.getElementById('renewUltPgto').textContent  = fmtDate(pgto);
+  document.getElementById('renewProxVenc').textContent = fmtDate(venc);
+}
+
+function confirmRenew(){
+  const pgto = document.getElementById('renewPgtoDate').value;
+  const venc = document.getElementById('renewVencDate').value;
+  if(!pgto || !venc){ showToast('Preencha as datas de pagamento e vencimento','error'); return; }
+  if(venc <= pgto){ showToast('Vencimento deve ser depois do pagamento','error'); return; }
+  const idx = clients.findIndex(c=>c.id===renewingId);
+  clients[idx].ultPgto  = pgto;
+  clients[idx].proxVenc = venc;
+  closeModal('renewOverlay');
+  saveData();
+  renderTable();
+  showToast(`✅ ${clients[idx].nome} renovado até ${fmtDate(venc)}!`,'success');
+}
+
+// ── DELETE CLIENTE ────────────────────────────────────────────────
+function openDeleteModal(id){
+  deletingClientId=id;
+  const c=clients.find(x=>x.id===id);
+  document.getElementById('delMsg').innerHTML=`Tem certeza que deseja remover <strong>${c.nome}</strong>?<br>Esta ação não pode ser desfeita.`;
+  document.getElementById('delOverlay').classList.add('open');
+}
+function confirmDelete(){
+  clients=clients.filter(c=>c.id!==deletingClientId);
+  closeModal('delOverlay');
+  saveData();
+  renderTable();
+  showToast('🗑️ Cliente removido!','error');
+}
+
+// ── MODAL SERVIDORES ──────────────────────────────────────────────
+function buildColorPicker(selectedIdx){
+  const row=document.getElementById('colorRow');
+  row.innerHTML=PALETTE.map((c,i)=>
+    `<div class="color-opt${i===selectedIdx?' selected':''}" style="background:${c.bg};border-color:${i===selectedIdx?c.fg:'transparent'}"
+      onclick="selectColor(${i})" title="${c.bg}"></div>`
+  ).join('');
+}
+
+function selectColor(idx){
+  selectedColorIdx=idx;
+  buildColorPicker(idx);
+}
+
+function renderSrvList(){
+  const list=document.getElementById('srvList');
+  if(!servers.length){list.innerHTML='<p style="color:var(--muted);font-size:.85rem;text-align:center;padding:10px">Nenhum servidor cadastrado.</p>';return;}
+  list.innerHTML=servers.map(s=>{
+    const count=clients.filter(c=>c.servidor===s.id).length;
+    return `<div class="srv-item">
+      <div class="srv-preview" style="background:${s.color.bg};border:2px solid ${s.color.fg}"></div>
+      <span class="srv-name" style="color:${s.color.fg}">${s.name}</span>
+      <span class="srv-count">${count} cliente${count!==1?'s':''}</span>
+      <button class="btn-edit-srv" onclick="startEditServer('${s.id}')">✏️ Editar</button>
+      <button class="btn-del-srv"  onclick="openDeleteServer('${s.id}')">🗑️ Remover</button>
+    </div>`;
+  }).join('');
+}
+
+function openServersModal(){
+  editingSrvId=null;
+  selectedColorIdx=0;
+  document.getElementById('srvName').value='';
+  document.getElementById('srvFormTitle').textContent='➕ Novo Servidor';
+  document.getElementById('srvSaveBtn').textContent='➕ Adicionar';
+  renderSrvList();
+  buildColorPicker(0);
+  document.getElementById('srvOverlay').classList.add('open');
+}
+
+function startEditServer(id){
+  editingSrvId=id;
+  const s=servers.find(x=>x.id===id);
+  document.getElementById('srvName').value=s.name;
+  selectedColorIdx=PALETTE.findIndex(p=>p.bg===s.color.bg&&p.fg===s.color.fg);
+  if(selectedColorIdx<0) selectedColorIdx=0;
+  buildColorPicker(selectedColorIdx);
+  document.getElementById('srvFormTitle').textContent=`✏️ Editar: ${s.name}`;
+  document.getElementById('srvSaveBtn').textContent='💾 Salvar Alterações';
+  document.getElementById('srvName').focus();
+}
+
+function cancelSrvEdit(){
+  if(editingSrvId){
+    editingSrvId=null;
+    document.getElementById('srvName').value='';
+    selectedColorIdx=0;
+    buildColorPicker(0);
+    document.getElementById('srvFormTitle').textContent='➕ Novo Servidor';
+    document.getElementById('srvSaveBtn').textContent='➕ Adicionar';
+  } else {
+    closeModal('srvOverlay');
+  }
+}
+
+function saveServer(){
+  const name=document.getElementById('srvName').value.trim().toUpperCase();
+  if(!name){showToast('Digite o nome do servidor','error');return;}
+  const color=PALETTE[selectedColorIdx];
+  if(editingSrvId){
+    const s=servers.find(x=>x.id===editingSrvId);
+    const oldName=s.name;
+    s.name=name; s.color=color;
+    // atualiza clientes com servidor antigo
+    if(editingSrvId!==name){
+      // Se o nome mudou, atualiza o id nos clientes
+      clients.forEach(c=>{ if(c.servidor===editingSrvId) c.servidor=name; });
+      s.id=name;
+    }
+    showToast(`✅ Servidor "${name}" atualizado!`,'success');
+    editingSrvId=null;
+    document.getElementById('srvSaveBtn').textContent='➕ Adicionar';
+    document.getElementById('srvFormTitle').textContent='➕ Novo Servidor';
+  } else {
+    if(servers.find(s=>s.id===name)){showToast('Já existe um servidor com este nome','error');return;}
+    servers.push({id:name,name,color});
+    showToast(`✅ Servidor "${name}" adicionado!`,'success');
+  }
+  document.getElementById('srvName').value='';
+  selectedColorIdx=0;
+  buildColorPicker(0);
+  saveData();
+  renderSrvList();
+  renderTable();
+}
+
+function openDeleteServer(id){
+  deletingSrvId=id;
+  const s=servers.find(x=>x.id===id);
+  const count=clients.filter(c=>c.servidor===id).length;
+  document.getElementById('delSrvMsg').innerHTML=
+    `Tem certeza que deseja remover o servidor <strong>${s.name}</strong>?`+
+    (count>0?`<br><br>⚠️ <strong>${count} cliente(s)</strong> estão neste servidor e ficarão sem servidor atribuído.`:'');
+  document.getElementById('delSrvOverlay').classList.add('open');
+}
+
+function confirmDeleteServer(){
+  servers=servers.filter(s=>s.id!==deletingSrvId);
+  closeModal('delSrvOverlay');
+  saveData();
+  renderSrvList();
+  renderTable();
+  showToast('🗑️ Servidor removido!','error');
+}
+
+// ── AVISOS ─────────────────────────────────────────────────────
+let whatsClientId = null;
+let currentCat = 'cobr';
+
+const AVISO_CATS = {
+  cobr: [
+    { label:'💰 Cobrança simples',   msg:(c)=>`Olá ${c.nome}! 😊\nPassando para lembrar que sua mensalidade IPTV vence em *${fmtDate(c.proxVenc)}*.\nValor: *${fmtMoney(c.valor)}*\n\nQualquer dúvida, estou à disposição! 🙏` },
+    { label:'⚠️ Vencimento hoje',     msg:(c)=>`Olá ${c.nome}! ⚠️\nSua mensalidade IPTV vence *hoje (${fmtDate(c.proxVenc)})*.\nValor: *${fmtMoney(c.valor)}*\n\nEfetue o pagamento para não ter interrupção! ✅` },
+    { label:'⛔ Em atraso',             msg:(c)=>`Olá ${c.nome}! ⛔\nSua mensalidade IPTV está *em atraso* desde ${fmtDate(c.proxVenc)}.\nValor: *${fmtMoney(c.valor)}*\n\nRegularize para reativar seu acesso. Obrigado! 🙏` },
+    { label:'📲 Renovar interesse',  msg:(c)=>`Olá ${c.nome}! 👋\nSeu acesso IPTV venceu em *${fmtDate(c.proxVenc)}*.\nTem interesse em renovar? 😊\nValor: *${fmtMoney(c.valor)}*\nMe avisa que ativo na hora! ⚡` },
+  ],
+  stab: [
+    { label:'⚠️ Instabilidade',      msg:(c)=>`Olá ${c.nome}! ⚠️\nInformamos que estamos com *instabilidade temporária* no sistema IPTV.\nNossa equipe já está trabalhando para normalizar. Pedimos desculpas pelo transtorno! 🙏` },
+    { label:'🔧 Manutenção',         msg:(c)=>`Olá ${c.nome}! 🔧\nAvisamos que haverá *manutenção programada* em nosso sistema.\nO serviço pode ficar indisponível por alguns instantes. Obrigado pela compreensão! 😊` },
+    { label:'📡 Queda de sinal',     msg:(c)=>`Olá ${c.nome}! 📡\nEstamos com *queda de sinal* em um dos servidores.\nTécnicos já estão resolvendo. Previsão de retorno em breve. Desculpe o inconveniente! 🙏` },
+    { label:'✅ Sistema normalizado', msg:(c)=>`Olá ${c.nome}! ✅\nNosso sistema IPTV foi *normalizado* e está funcionando perfeitamente!\nAgradecemos a paciência. Qualquer problema é só chamar! 😊` },
+  ],
+  info: [
+    { label:'ℹ️ Aviso geral',        msg:(c)=>`Olá ${c.nome}! ℹ️\nPassando para deixar um aviso importante sobre seu serviço IPTV.\n\n` },
+    { label:'🔁 Troca de servidor',  msg:(c)=>`Olá ${c.nome}! 🔄\nInformamos que seu acesso foi *migrado para um novo servidor*.\nO desempenho vai melhorar! Qualquer dúvida é só chamar. 😊` },
+    { label:'📱 Novo app/link',      msg:(c)=>`Olá ${c.nome}! 📱\nEnviando seu *novo link/aplicativo* de acesso IPTV:\n\n[COLE O LINK AQUI]\n\nQualquer dúvida é só chamar! 😊` },
+    { label:'⏰ Aviso de vencimento',msg:(c)=>`Olá ${c.nome}! ⏰\nLembrete: seu acesso IPTV vence em *${fmtDate(c.proxVenc)}*.\nRenove com antecedência para não ter interrupção! 😊` },
+  ],
+  promo: [
+    { label:'🎉 Promoção mensal',    msg:(c)=>`Olá ${c.nome}! 🎉\nTemos uma *promoção especial* para você!\n\n⭐ Renove por *3 meses* e ganhe 1 mês grátis!\nValor normal: ${fmtMoney(c.valor)}/mês\n💰 *Promoção: 3+1 = R$ XX*\n\nInteresse? Me chama! 😊` },
+    { label:'📺 Plano indicação',   msg:(c)=>`Olá ${c.nome}! 📺\nSabia que você pode *ganhar descontos* indicando amigos?\n\nCada amigo que assinar = *1 semana grátis* pra você! 🎉\nInteressou? Me manda o contato deles! 😊` },
+    { label:'🗓️ Plano semestral',  msg:(c)=>`Olá ${c.nome}! 🗓️\nQue tal assinar o *plano semestral* e economizar?\n\n✅ 6 meses por apenas *R$ XX*\n(Economia de R$ XX comparado ao mensal)\n\nInteresse? Me chama! 😊` },
+    { label:'🎶 Upgrade de plano',  msg:(c)=>`Olá ${c.nome}! 🎶\nTemos um *plano premium* com ainda mais canais e qualidade!\n\n📺 +5000 canais | 🎬 Filmes e séries | 🏆 Esportes ao vivo\nValor: *R$ XX/mês*\n\nQuer conhecer? 😊` },
+  ],
+  pgto: [
+    { label:'✅ Pgto recebido',       msg:(c)=>`Olá ${c.nome}! ✅\n*Pagamento recebido*, obrigado! 🎉\nSeu acesso está ativo até *${fmtDate(c.proxVenc)}*.\nQualquer problema é só chamar! 😊` },
+    { label:'💸 Pix recebido',       msg:(c)=>`Olá ${c.nome}! 💸\n*Pix recebido com sucesso!* 🎉\nAcesso renovado até *${fmtDate(c.proxVenc)}*.\nObrigado pela confiança! 🙏` },
+    { label:'🔓 Acesso liberado',   msg:(c)=>`Olá ${c.nome}! 🔓\nSeu acesso IPTV foi *liberado/reativado* com sucesso!\nAtivo até *${fmtDate(c.proxVenc)}*.\nBoa diversão! 📺😊` },
+  ],
+};
+
+function openAvisoModal(id){
+  whatsClientId = id;
+  const c = clients.find(x=>x.id===id);
+  document.getElementById('avisoNomeCliente').textContent = c.nome;
+  document.getElementById('whatsNum').value = c.contato ? c.contato.replace(/\D/g,'') : '';
+  currentCat = 'cobr';
+  // ativa categoria cobrança
+  document.querySelectorAll('.aviso-cat').forEach(b=>b.classList.remove('active'));
+  document.querySelector('.aviso-cat.cat-cobr').classList.add('active');
+  renderAvisoChips('cobr', 0);
+  document.getElementById('whatsOverlay').classList.add('open');
+}
+
+function selectCat(cat){
+  currentCat = cat;
+  document.querySelectorAll('.aviso-cat').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`.aviso-cat.cat-${cat}`).classList.add('active');
+  renderAvisoChips(cat, 0);
+}
+
+function renderAvisoChips(cat, activeIdx){
+  const tpls = AVISO_CATS[cat];
+  document.getElementById('avisoChips').innerHTML = tpls.map((t,i)=>
+    `<button class="tpl-chip${i===activeIdx?' active':''}" onclick="applyAvisoTpl('${cat}',${i})">${t.label}</button>`
+  ).join('');
+  applyAvisoTpl(cat, activeIdx);
+}
+
+function applyAvisoTpl(cat, idx){
+  const c = clients.find(x=>x.id===whatsClientId);
+  document.getElementById('whatsMsg').value = AVISO_CATS[cat][idx].msg(c);
+  document.querySelectorAll('.tpl-chip').forEach((b,i)=>b.classList.toggle('active',i===idx));
+  updateWppPreview();
+}
+
+function updateWppPreview(){
+  const txt = document.getElementById('whatsMsg').value;
+  const html = txt
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*(.*?)\*/g,'<strong>$1</strong>')
+    .replace(/\n/g,'<br>');
+  document.getElementById('wppBubble').innerHTML = html;
+  const now = new Date();
+  document.getElementById('wppTime').textContent =
+    now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+}
+
+function sendWhats(){
+  const num = document.getElementById('whatsNum').value.replace(/\D/g,'');
+  const msg = document.getElementById('whatsMsg').value;
+  if(!num){ showToast('Informe o número do WhatsApp','error'); return; }
+  if(!msg){ showToast('A mensagem está vazia','error'); return; }
+  const idx = clients.findIndex(c=>c.id===whatsClientId);
+  if(idx>=0 && !clients[idx].contato) clients[idx].contato = num;
+  window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`,'_blank');
+  closeModal('whatsOverlay');
+  saveData();
+  showToast('📲 WhatsApp aberto!','success');
+}
+
+// ── EXPORT CSV ────────────────────────────────────────────────────
+function exportCSV(){
+  const h=['#','Nome','Servidor','Ultimo Pgto','Prox Vencimento','Dias','Valor','Status','Plano','Contato','Obs','Ativo'];
+  const rows=clients.map((c,i)=>{
+    const dias=diasParaVencer(c.proxVenc);
+    const st=getStatus(dias).txt.replace(/[^\w\s]/g,'').trim();
+    return [i+1,c.nome,c.servidor,fmtDate(c.ultPgto),fmtDate(c.proxVenc),dias,
+            'R$ '+Number(c.valor).toFixed(2),st,c.plano,c.contato,c.obs,c.ativo].map(v=>`"${v}"`).join(';');
+  });
+  const csv='\uFEFF'+[h.join(';'),...rows].join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='clientes_iptv.csv'; a.click();
+  showToast('📥 CSV exportado!','success');
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function closeIfBg(e,id){if(e.target.id===id) closeModal(id);}
+function showToast(msg,type='success'){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className=`toast ${type} show`;
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// ── RESUMO POR SERVIDOR ─────────────────────────────────────────────
+function renderSrvCards(){
+  const totalReceita = clients.reduce((a,c)=>a+Number(c.valor),0)||1;
+  const wrap = document.getElementById('srvCards');
+  if(!wrap) return;
+  wrap.innerHTML = servers.map(s=>{
+    const sc = clients.filter(c=>c.servidor===s.id);
+    const receita  = sc.reduce((a,c)=>a+Number(c.valor),0);
+    const total    = sc.length;
+    const vencidos = sc.filter(c=>diasParaVencer(c.proxVenc)<0).length;
+    const breve    = sc.filter(c=>{const d=diasParaVencer(c.proxVenc);return d>=0&&d<=7;}).length;
+    const emDia    = total - vencidos - breve;
+    const pct      = totalReceita>0 ? Math.round(receita/totalReceita*100) : 0;
+    const {bg,fg}  = s.color;
+    return `
+    <div class="srv-card" style="background:${bg};color:${fg};border-color:${fg}22">
+      <div class="srv-card-name">
+        ${s.name}
+        <span class="cli-count" style="background:${fg}22">${total} cliente${total!==1?'s':''}</span>
+      </div>
+      <div class="srv-card-receita">${fmtMoney(receita)}<span style="font-size:.72rem;font-weight:500;opacity:.7">/mês</span></div>
+      <div class="srv-card-divider"></div>
+      <div class="srv-card-row">
+        <span class="srv-card-lbl">✅ Em dia</span>
+        <span class="srv-card-val">${emDia}</span>
+      </div>
+      <div class="srv-card-row">
+        <span class="srv-card-lbl">🔔 Vencem em breve</span>
+        <span class="srv-card-val">${breve}</span>
+      </div>
+      <div class="srv-card-row">
+        <span class="srv-card-lbl">⛔ Vencidos</span>
+        <span class="srv-card-val" style="${vencidos>0?'font-weight:800':''}}">${vencidos}</span>
+      </div>
+      <div class="srv-card-bar-wrap" title="${pct}% da receita total">
+        <div class="srv-card-bar" style="width:${pct}%;background:${fg}"></div>
+      </div>
+      <div style="font-size:.68rem;opacity:.65;margin-top:4px;text-align:right">${pct}% da receita total</div>
+    </div>`;
+  }).join('');
+}
+
+// ── BACKUP / IMPORTAR ────────────────────────────────────────────
+function openBackupModal(){
+  switchBackupTab('export');
+  const json = JSON.stringify({clients, servers, nextId}, null, 2);
+  document.getElementById('exportBox').value = json;
+  document.getElementById('importBox').value = '';
+  document.getElementById('importError').style.display='none';
+  document.getElementById('backupOverlay').classList.add('open');
+}
+
+function switchBackupTab(tab){
+  document.getElementById('panelExport').style.display = tab==='export'?'block':'none';
+  document.getElementById('panelImport').style.display = tab==='import'?'block':'none';
+  document.getElementById('importBtn').style.display   = tab==='import'?'inline-flex':'none';
+  document.getElementById('tabExport').classList.toggle('active', tab==='export');
+  document.getElementById('tabImport').classList.toggle('active', tab==='import');
+  if(tab==='export'){
+    document.getElementById('exportBox').value = JSON.stringify({clients, servers, nextId}, null, 2);
+  }
+}
+
+function copyBackupJSON(){
+  const box = document.getElementById('exportBox');
+  box.select(); document.execCommand('copy');
+  showToast('📋 JSON copiado!','success');
+}
+
+function downloadBackupJSON(){
+  const json = JSON.stringify({clients, servers, nextId}, null, 2);
+  const a = document.createElement('a');
+  a.href = 'data:application/json;charset=utf-8,'+encodeURIComponent(json);
+  a.download = `backup_iptv_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  showToast('⬇ Backup baixado!','success');
+}
+
+function loadImportFile(){
+  const file = document.getElementById('importFile').files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('importBox').value = e.target.result;
+    document.getElementById('importError').style.display='none';
+  };
+  reader.readAsText(file);
+}
+
+function importJSON(){
+  const raw = document.getElementById('importBox').value.trim();
+  const errEl = document.getElementById('importError');
+  try {
+    const d = JSON.parse(raw);
+    if(!d.clients || !Array.isArray(d.clients)) throw new Error('Campo "clients" inválido ou ausente.');
+    if(!d.servers || !Array.isArray(d.servers)) throw new Error('Campo "servers" inválido ou ausente.');
+    clients = d.clients;
+    servers = d.servers;
+    nextId  = d.nextId || (Math.max(0,...clients.map(c=>c.id))+1);
+    saveData();
+    closeModal('backupOverlay');
+    renderTable();
+    showToast('✅ Dados importados com sucesso!','success');
+  } catch(e){
+    errEl.textContent = '❌ JSON inválido: '+e.message;
+    errEl.style.display='block';
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+const hadData = loadData();
+renderTable();
+if(hadData) setSaveIndicator('load'); else setSaveIndicator('saved');
+setTimeout(checkAndShowAlert, 500);
+
+// ── MENSAGEM RENOVAÇÃO RÁPIDA (botão no alerta) ──────────────────────
+function quickRenewMsg(c){
+  const dias = diasParaVencer(c.proxVenc);
+  if(dias < 0)
+    return `Olá ${c.nome}! 👋\nPassando para avisar que seu acesso IPTV *venceu em ${fmtDate(c.proxVenc)}*.\n\nTem interesse em renovar? 😊\nValor: *${fmtMoney(c.valor)}*\n\nMe avisa que ativo na hora! ⚡`;
+  return `Olá ${c.nome}! 👋\nSeu acesso IPTV vence *amanhã (${fmtDate(c.proxVenc)})*.\n\nDeseja renovar? 😊\nValor: *${fmtMoney(c.valor)}*\n\nMe confirma que deixo ativo! ⚡`;
+}
+
+function sendRenewWpp(id){
+  const c = clients.find(x=>x.id===id);
+  if(!c) return;
+  const num = c.contato ? c.contato.replace(/\D/g,'') : '';
+  if(!num){ showToast(`⚠️ ${c.nome} sem WhatsApp cadastrado`,'error'); return; }
+  const url = `https://wa.me/${num}?text=${encodeURIComponent(quickRenewMsg(c))}`;
+  window.open(url,'_blank');
+}
+
+async function sendRenewToAll(){
+  const pendentes = clients.filter(c=>{
+    const d=diasParaVencer(c.proxVenc);
+    return d<=1 && c.contato && c.contato.replace(/\D/g,'').length>=10;
+  });
+  if(!pendentes.length){ showToast('Nenhum cliente vencido/urgente com WhatsApp cadastrado','error'); return; }
+  closeAlert();
+  showToast(`📲 Abrindo ${pendentes.length} conversas...`);
+  for(let i=0; i<pendentes.length; i++){
+    const c = pendentes[i];
+    const num = c.contato.replace(/\D/g,'');
+    const url = `https://wa.me/${num}?text=${encodeURIComponent(quickRenewMsg(c))}`;
+    window.open(url,'_blank');
+    await new Promise(r=>setTimeout(r,900));
+  }
+}
+
+// ── INSTABILIDADE ─────────────────────────────────────────────────────
+const INSTA_TEMPLATES = [
+  { label:'⚠️ Instabilidade', msg:()=>`Olá! ⚠️\nInformamos que estamos com *instabilidade temporária* em nosso sistema IPTV.\n\nNossa equipe já está trabalhando para normalizar o serviço o mais rápido possível.\n\nPedimos desculpas pelo transtorno! 🙏` },
+  { label:'🔧 Manutenção', msg:()=>`Olá! 🔧\nAvisamos que haverá *manutenção programada* em nosso sistema IPTV.\n\nO serviço pode ficar indisponível por alguns instantes.\n\nObrigado pela compreensão! 😊` },
+  { label:'✅ Normalizado', msg:()=>`Olá! ✅\nInformamos que nosso sistema IPTV já foi *normalizado* e está funcionando perfeitamente.\n\nAgradecemos a paciência! 🙏\nQualquer problema é só chamar.` },
+  { label:'📡 Queda de sinal', msg:()=>`Olá! 📡\nEstamos com *queda de sinal* em um dos nossos servidores.\n\nTécnicos já estão resolvendo. Previsão de retorno em breve.\n\nDesculpe o inconveniente! 🙏` },
+];
+
+function openInstaModal(){
+  // templates
+  const btns = document.getElementById('instaTplBtns');
+  btns.innerHTML = INSTA_TEMPLATES.map((t,i)=>
+    `<button class="insta-tpl-btn${i===0?' active':''}" onclick="applyInstaTpl(${i})">${t.label}</button>`
+  ).join('');
+  // servidores no select
+  const sel = document.getElementById('instaTargetSrv');
+  sel.innerHTML = servers.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  // aplica primeiro template
+  document.getElementById('instaMsg').value = INSTA_TEMPLATES[0].msg();
+  // reset progress
+  document.getElementById('instaProgressWrap').style.display='none';
+  document.getElementById('instaLog').style.display='none';
+  document.getElementById('instaLog').textContent='';
+  document.querySelector('input[name=instaTarget][value=todos]').checked=true;
+  updateInstaCount();
+  document.getElementById('instaOverlay').classList.add('open');
+}
+
+function applyInstaTpl(idx){
+  document.getElementById('instaMsg').value = INSTA_TEMPLATES[idx].msg();
+  document.querySelectorAll('.insta-tpl-btn').forEach((b,i)=>b.classList.toggle('active',i===idx));
+}
+
+function getInstaTargets(){
+  const radio = document.querySelector('input[name=instaTarget]:checked').value;
+  let base = clients.filter(c=>c.contato && c.contato.replace(/\D/g,'').length>=10);
+  if(radio==='srv'){
+    const srv = document.getElementById('instaTargetSrv').value;
+    base = base.filter(c=>c.servidor===srv);
+  }
+  return base;
+}
+
+function updateInstaCount(){
+  const t = getInstaTargets();
+  document.getElementById('instaCount').textContent =
+    `📲 ${t.length} cliente${t.length!==1?'s':''} com WhatsApp cadastrado será${t.length!==1?'ão':''} avisado${t.length!==1?'s':''}`;
+}
+
+async function sendInstaToAll(){
+  const targets = getInstaTargets();
+  if(!targets.length){ showToast('Nenhum cliente com WhatsApp cadastrado neste filtro','error'); return; }
+  const msg = document.getElementById('instaMsg').value.trim();
+  if(!msg){ showToast('Digite a mensagem','error'); return; }
+
+  const pw = document.getElementById('instaProgressWrap');
+  const pb = document.getElementById('instaProgressBar');
+  const log = document.getElementById('instaLog');
+  pw.style.display='block'; log.style.display='block'; log.textContent='';
+
+  for(let i=0; i<targets.length; i++){
+    const c = targets[i];
+    const num = c.contato.replace(/\D/g,'');
+    const url = `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
+    window.open(url,'_blank');
+    const pct = Math.round((i+1)/targets.length*100);
+    pb.style.width = pct+'%';
+    log.textContent += `[${i+1}/${targets.length}] ✅ ${c.nome} — ${num}\n`;
+    log.scrollTop = log.scrollHeight;
+    await new Promise(r=>setTimeout(r,900));
+  }
+  pb.style.background='#16A34A';
+  log.textContent += `\n🎉 Concluído! ${targets.length} mensagem${targets.length!==1?'s':''} enviada${targets.length!==1?'s':''}.`;
+  showToast(`✅ ${targets.length} WhatsApps abertos!`,'success');
+}
+
+// ── ALERTA DE VENCIDOS ─────────────────────────────────────────────
+function checkAndShowAlert(){
+  const today_str = today();
+  const suppressed = localStorage.getItem('iptv_alert_suppress');
+  if(suppressed === today_str) return; // já suprimido hoje
+
+  const vencidos = clients.filter(c => diasParaVencer(c.proxVenc) < 0);
+  const urgente  = clients.filter(c => { const d=diasParaVencer(c.proxVenc); return d>=0&&d<=3; });
+  const breve    = clients.filter(c => { const d=diasParaVencer(c.proxVenc); return d>3&&d<=7; });
+
+  const total = vencidos.length + urgente.length + breve.length;
+  if(total === 0) return;
+
+  document.getElementById('alertBadgeCount').textContent = total + ' pendência' + (total!==1?'s':'');
+
+  let html = '';
+
+  if(vencidos.length){
+    html += `<div class="alert-section-title red">⛔ Vencidos — ${vencidos.length} cliente${vencidos.length!==1?'s':''}</div>`;
+    html += vencidos.sort((a,b)=>a.proxVenc.localeCompare(b.proxVenc)).map(c=>{
+      const dias = diasParaVencer(c.proxVenc);
+      const srv  = getSrv(c.servidor);
+      const semWpp = !c.contato||c.contato.replace(/\D/g,'').length<10;
+      return `<div class="alert-row">
+        <div class="ar-name">${c.nome}</div>
+        <span class="ar-srv" style="background:${srv.color.bg};color:${srv.color.fg}">${srv.name}</span>
+        <div class="ar-date">${fmtDate(c.proxVenc)}</div>
+        <div class="ar-dias neg">${dias}d</div>
+        <button class="btn-wpp-renovar" onclick="sendRenewWpp(${c.id})" title="${semWpp?'Sem WhatsApp cadastrado':'Avisar sobre renovação'}" ${semWpp?'style="opacity:.4;cursor:not-allowed" disabled':''}>📲 Renovar?</button>
+        <button class="btn btn-renew" style="padding:4px 8px;font-size:.72rem;margin-left:2px" onclick="openRenewModal(${c.id})" title="Renovar">🔄</button>
+      </div>`;
+    }).join('');
+  }
+
+  if(urgente.length){
+    html += `<div class="alert-section-title orange" style="margin-top:${vencidos.length?'14px':'0'}">⚠️ Vencem em até 3 dias — ${urgente.length} cliente${urgente.length!==1?'s':''}</div>`;
+    html += urgente.sort((a,b)=>a.proxVenc.localeCompare(b.proxVenc)).map(c=>{
+      const dias = diasParaVencer(c.proxVenc);
+      const srv  = getSrv(c.servidor);
+      const semWpp = !c.contato||c.contato.replace(/\D/g,'').length<10;
+      return `<div class="alert-row">
+        <div class="ar-name">${c.nome}</div>
+        <span class="ar-srv" style="background:${srv.color.bg};color:${srv.color.fg}">${srv.name}</span>
+        <div class="ar-date">${fmtDate(c.proxVenc)}</div>
+        <div class="ar-dias warn">+${dias}d</div>
+        <button class="btn-wpp-renovar" onclick="sendRenewWpp(${c.id})" title="${semWpp?'Sem WhatsApp cadastrado':'Avisar sobre renovação'}" ${semWpp?'style="opacity:.4;cursor:not-allowed" disabled':''}>📲 Renovar?</button>
+        <button class="btn btn-renew" style="padding:4px 8px;font-size:.72rem;margin-left:2px" onclick="openRenewModal(${c.id})" title="Renovar">🔄</button>
+      </div>`;
+    }).join('');
+  }
+
+  if(breve.length){
+    html += `<div class="alert-section-title yellow" style="margin-top:${(vencidos.length||urgente.length)?'14px':'0'}">🔔 Vencem em 4-7 dias — ${breve.length} cliente${breve.length!==1?'s':''}</div>`;
+    html += breve.sort((a,b)=>a.proxVenc.localeCompare(b.proxVenc)).map(c=>{
+      const dias = diasParaVencer(c.proxVenc);
+      const srv  = getSrv(c.servidor);
+      const semWpp = !c.contato||c.contato.replace(/\D/g,'').length<10;
+      return `<div class="alert-row">
+        <div class="ar-name">${c.nome}</div>
+        <span class="ar-srv" style="background:${srv.color.bg};color:${srv.color.fg}">${srv.name}</span>
+        <div class="ar-date">${fmtDate(c.proxVenc)}</div>
+        <div class="ar-dias soon">+${dias}d</div>
+        <button class="btn-wpp-renovar" onclick="sendRenewWpp(${c.id})" title="${semWpp?'Sem WhatsApp cadastrado':'Avisar sobre renovação'}" ${semWpp?'style="opacity:.4;cursor:not-allowed" disabled':''}>📲 Renovar?</button>
+      </div>`;
+    }).join('');
+  }
+
+  document.getElementById('alertBody').innerHTML = html || '<div class="alert-empty">✅ Tudo em dia!</div>';
+  document.getElementById('alertOverlay').classList.add('open');
+}
+
+function closeAlert(){
+  document.getElementById('alertOverlay').classList.remove('open');
+}
+
+function suppressAlert(){
+  const cb = document.getElementById('alertSuppressToday');
+  if(cb.checked) localStorage.setItem('iptv_alert_suppress', today());
+  else localStorage.removeItem('iptv_alert_suppress');
+}
+
+function filterVencidos(){
+  closeAlert();
+  document.getElementById('filterStatus').value = 'vencido';
+  renderTable();
+}
+
+// auto-save direto nas funções — sem patch
+
+function logout(){
+  localStorage.removeItem("usuario_logado");
+  window.location.href = "/login.html";
+}
+
+</script>
+</body>
+</html>
