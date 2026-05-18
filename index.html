@@ -201,14 +201,53 @@ if (!usuario) {
   window.location.href = "/login.html";
 }
 
+
+
 function logout(){
   localStorage.removeItem("usuario_logado");
+  if(typeof supabaseClient !== 'undefined'){
+    supabaseClient.auth.signOut();
+  }
   window.location.href = "/login.html";
 }
 
+async function iniciarSistema(){
+  const user = await getCurrentUser();
+
+  if(!user){
+    localStorage.removeItem("usuario_logado");
+    window.location.href = "/login.html";
+    return;
+  }
+
+  const carregouNuvem = await loadClientsFromSupabase();
+
+  if(!carregouNuvem){
+    loadData();
+  }
+
+  rebuildServerSelects();
+  renderTable();
+
+  if(typeof checkDueAlert === 'function'){
+    setTimeout(checkDueAlert, 500);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', iniciarSistema);
+
 </script>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase.js"></script>
+<script>
+const usuario = localStorage.getItem("usuario_logado");
+
+if (!usuario) {
+  window.location.href = "/login.html";
+}
+</script>
+
 </head>
 <body>
 
@@ -592,6 +631,124 @@ let clients = [];
 
 // ── LOCALSTORAGE ─────────────────────────────────────────────────
 const LS_KEY = 'iptv_data_v1';
+let currentUser = null;
+let usandoNuvem = false;
+
+async function getCurrentUser(){
+  try{
+    if(typeof supabaseClient === 'undefined') return null;
+    const { data, error } = await supabaseClient.auth.getUser();
+    if(error || !data || !data.user) return null;
+    currentUser = data.user;
+    usandoNuvem = true;
+    return data.user;
+  }catch(e){
+    console.warn('Supabase não carregado:', e);
+    return null;
+  }
+}
+
+function dbToClient(row){
+  return {
+    id: row.id,
+    nome: row.nome || '',
+    servidor: row.servidor || 'CLUB',
+    ultPgto: row.ultimo_pagamento || '',
+    proxVenc: row.proximo_vencimento || '',
+    valor: Number(row.valor || 0),
+    plano: row.plano || 'Mensal',
+    contato: row.contato || '',
+    obs: row.observacoes || '',
+    ativo: row.ativo === false ? 'Não' : 'Sim'
+  };
+}
+
+function clientToDb(c){
+  return {
+    user_id: currentUser.id,
+    nome: c.nome,
+    servidor: c.servidor,
+    ultimo_pagamento: c.ultPgto,
+    proximo_vencimento: c.proxVenc,
+    valor: Number(c.valor || 0),
+    plano: c.plano || 'Mensal',
+    contato: c.contato || '',
+    observacoes: c.obs || '',
+    ativo: c.ativo !== 'Não'
+  };
+}
+
+async function loadClientsFromSupabase(){
+  if(!currentUser || typeof supabaseClient === 'undefined') return false;
+
+  const { data, error } = await supabaseClient
+    .from('clientes')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .order('created_at', { ascending: true });
+
+  if(error){
+    console.error('Erro ao carregar clientes:', error);
+    showToast('⚠️ Erro ao carregar clientes da nuvem: '+error.message,'error');
+    return false;
+  }
+
+  clients = (data || []).map(dbToClient);
+  usandoNuvem = true;
+  setSaveIndicator('load');
+  return true;
+}
+
+async function insertClientSupabase(obj){
+  const { data, error } = await supabaseClient
+    .from('clientes')
+    .insert([clientToDb(obj)])
+    .select()
+    .single();
+
+  if(error) throw error;
+  return dbToClient(data);
+}
+
+async function updateClientSupabase(id, obj){
+  const { data, error } = await supabaseClient
+    .from('clientes')
+    .update(clientToDb(obj))
+    .eq('id', id)
+    .eq('user_id', currentUser.id)
+    .select()
+    .single();
+
+  if(error) throw error;
+  return dbToClient(data);
+}
+
+async function deleteClientSupabase(id){
+  const { error } = await supabaseClient
+    .from('clientes')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', currentUser.id);
+
+  if(error) throw error;
+}
+
+async function renewClientSupabase(id, pgto, venc){
+  const { data, error } = await supabaseClient
+    .from('clientes')
+    .update({
+      ultimo_pagamento: pgto,
+      proximo_vencimento: venc
+    })
+    .eq('id', id)
+    .eq('user_id', currentUser.id)
+    .select()
+    .single();
+
+  if(error) throw error;
+  return dbToClient(data);
+}
+
 let saveTimer = null;
 
 function manualSave(){
@@ -751,27 +908,59 @@ function openEditModal(id){
   document.getElementById('fAtivo').value   =c.ativo;
   document.getElementById('formOverlay').classList.add('open');
 }
-function saveClient(){
+async function saveClient(){
   const nome=document.getElementById('fNome').value.trim();
   const ultPgto=document.getElementById('fUltPgto').value;
   const proxVenc=document.getElementById('fProxVenc').value;
   const valor=document.getElementById('fValor').value;
-  if(!nome||!ultPgto||!proxVenc||!valor){showToast('Preencha os campos obrigatórios (*)','error');return;}
-  const obj={nome,servidor:document.getElementById('fServidor').value,
-    plano:document.getElementById('fPlano').value,ultPgto,proxVenc,
-    valor:parseFloat(valor),contato:document.getElementById('fContato').value,
-    obs:document.getElementById('fObs').value,ativo:document.getElementById('fAtivo').value};
-  if(editingClientId){
-    const idx=clients.findIndex(c=>c.id===editingClientId);
-    clients[idx]={...clients[idx],...obj};
-    showToast('✅ Cliente atualizado!','success');
-  } else {
-    clients.push({id:nextId++,...obj});
-    showToast('✅ Cliente adicionado!','success');
+
+  if(!nome||!ultPgto||!proxVenc||!valor){
+    showToast('Preencha os campos obrigatórios (*)','error');
+    return;
   }
-  closeModal('formOverlay');
-  saveData();
-  renderTable();
+
+  const obj={
+    nome,
+    servidor:document.getElementById('fServidor').value,
+    plano:document.getElementById('fPlano').value,
+    ultPgto,
+    proxVenc,
+    valor:parseFloat(valor),
+    contato:document.getElementById('fContato').value,
+    obs:document.getElementById('fObs').value,
+    ativo:document.getElementById('fAtivo').value
+  };
+
+  try{
+    if(usandoNuvem && currentUser && typeof supabaseClient !== 'undefined'){
+      if(editingClientId){
+        const updated = await updateClientSupabase(editingClientId, obj);
+        const idx=clients.findIndex(c=>c.id===editingClientId);
+        clients[idx]=updated;
+        showToast('✅ Cliente atualizado na nuvem!','success');
+      } else {
+        const inserted = await insertClientSupabase(obj);
+        clients.push(inserted);
+        showToast('✅ Cliente salvo na nuvem!','success');
+      }
+    } else {
+      if(editingClientId){
+        const idx=clients.findIndex(c=>c.id===editingClientId);
+        clients[idx]={...clients[idx],...obj};
+        showToast('✅ Cliente atualizado!','success');
+      } else {
+        clients.push({id:nextId++,...obj});
+        showToast('✅ Cliente adicionado!','success');
+      }
+      saveData();
+    }
+
+    closeModal('formOverlay');
+    renderTable();
+  }catch(e){
+    console.error(e);
+    showToast('⚠️ Erro ao salvar na nuvem: '+e.message,'error');
+  }
 }
 function clearForm(){
   ['fNome','fUltPgto','fProxVenc','fValor','fContato','fObs'].forEach(f=>document.getElementById(f).value='');
@@ -865,18 +1054,31 @@ function updateRenewPreview(){
   document.getElementById('renewProxVenc').textContent = fmtDate(venc);
 }
 
-function confirmRenew(){
+async function confirmRenew(){
   const pgto = document.getElementById('renewPgtoDate').value;
   const venc = document.getElementById('renewVencDate').value;
   if(!pgto || !venc){ showToast('Preencha as datas de pagamento e vencimento','error'); return; }
   if(venc <= pgto){ showToast('Vencimento deve ser depois do pagamento','error'); return; }
-  const idx = clients.findIndex(c=>c.id===renewingId);
-  clients[idx].ultPgto  = pgto;
-  clients[idx].proxVenc = venc;
-  closeModal('renewOverlay');
-  saveData();
-  renderTable();
-  showToast(`✅ ${clients[idx].nome} renovado até ${fmtDate(venc)}!`,'success');
+
+  try{
+    const idx = clients.findIndex(c=>c.id===renewingId);
+
+    if(usandoNuvem && currentUser && typeof supabaseClient !== 'undefined'){
+      const updated = await renewClientSupabase(renewingId, pgto, venc);
+      clients[idx] = updated;
+    } else {
+      clients[idx].ultPgto  = pgto;
+      clients[idx].proxVenc = venc;
+      saveData();
+    }
+
+    closeModal('renewOverlay');
+    renderTable();
+    showToast(`✅ ${clients[idx].nome} renovado até ${fmtDate(venc)}!`,'success');
+  }catch(e){
+    console.error(e);
+    showToast('⚠️ Erro ao renovar: '+e.message,'error');
+  }
 }
 
 // ── DELETE CLIENTE ────────────────────────────────────────────────
@@ -886,12 +1088,20 @@ function openDeleteModal(id){
   document.getElementById('delMsg').innerHTML=`Tem certeza que deseja remover <strong>${c.nome}</strong>?<br>Esta ação não pode ser desfeita.`;
   document.getElementById('delOverlay').classList.add('open');
 }
-function confirmDelete(){
-  clients=clients.filter(c=>c.id!==deletingClientId);
-  closeModal('delOverlay');
-  saveData();
-  renderTable();
-  showToast('🗑️ Cliente removido!','error');
+async function confirmDelete(){
+  try{
+    if(usandoNuvem && currentUser && typeof supabaseClient !== 'undefined'){
+      await deleteClientSupabase(deletingClientId);
+    }
+    clients=clients.filter(c=>c.id!==deletingClientId);
+    closeModal('delOverlay');
+    saveData();
+    renderTable();
+    showToast('🗑️ Cliente removido!','error');
+  }catch(e){
+    console.error(e);
+    showToast('⚠️ Erro ao remover cliente: '+e.message,'error');
+  }
 }
 
 // ── MODAL SERVIDORES ──────────────────────────────────────────────
@@ -1240,8 +1450,7 @@ function importJSON(){
 }
 
 // ── INIT ──────────────────────────────────────────────────────────
-const hadData = loadData();
-renderTable();
+const hadData = // inicialização feita por iniciarSistema();
 if(hadData) setSaveIndicator('load'); else setSaveIndicator('saved');
 setTimeout(checkAndShowAlert, 500);
 
