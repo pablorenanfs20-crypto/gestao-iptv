@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - NexClients</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+      font-family:Arial,sans-serif;
+    }
+
+    body{
+      min-height:100vh;
+      background:linear-gradient(135deg,#0f172a,#1e293b);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .login-box{
+      width:100%;
+      max-width:390px;
+      background:#fff;
+      padding:30px;
+      border-radius:18px;
+      box-shadow:0 20px 50px rgba(0,0,0,.3);
+    }
+
+    h1{
+      text-align:center;
+      margin-bottom:10px;
+      color:#1e293b;
+    }
+
+    p{
+      text-align:center;
+      color:#64748b;
+      margin-bottom:25px;
+      font-size:14px;
+    }
+
+    label{
+      display:block;
+      margin-bottom:6px;
+      font-size:14px;
+      color:#334155;
+      font-weight:bold;
+    }
+
+    input{
+      width:100%;
+      padding:12px;
+      border:1px solid #cbd5e1;
+      border-radius:10px;
+      margin-bottom:16px;
+      font-size:15px;
+    }
+
+    button{
+      width:100%;
+      padding:13px;
+      border:none;
+      border-radius:10px;
+      background:#2563eb;
+      color:#fff;
+      font-size:15px;
+      font-weight:bold;
+      cursor:pointer;
+    }
+
+    button:hover{ background:#1d4ed8; }
+
+    button:disabled{
+      opacity:.65;
+      cursor:not-allowed;
+    }
+
+    .erro{
+      margin-top:15px;
+      text-align:center;
+      color:#dc2626;
+      display:none;
+      font-size:14px;
+      line-height:1.4;
+    }
+
+    .sucesso{
+      margin-top:15px;
+      text-align:center;
+      color:#16a34a;
+      display:none;
+      font-size:14px;
+      line-height:1.4;
+    }
+
+    .info{
+      margin-top:15px;
+      text-align:center;
+      color:#475569;
+      font-size:12px;
+      line-height:1.4;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="login-box">
+
+  <h1>NexClients</h1>
+  <p>Entre para acessar seu painel</p>
+
+  <label>Email</label>
+  <input type="email" id="email" placeholder="Digite seu email">
+
+  <label>Senha</label>
+  <input type="password" id="senha" placeholder="Digite sua senha">
+
+  <button id="btnLogin" onclick="fazerLogin()">Entrar</button>
+
+  <div class="erro" id="erro"></div>
+  <div class="sucesso" id="sucesso"></div>
+
+  <div class="info">
+    Acesso liberado somente para usuários com assinatura ativa.
+  </div>
+
+</div>
+
+<script>
+
+const SUPABASE_URL = "https://tfhwwasxecqkyccprupc.supabase.co";
+
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRmaHd3YXN4ZWNxa3ljY3BydXBjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDY0MTQsImV4cCI6MjA5NDYyMjQxNH0.5K-tzFe7DuUT7nQqJOd183nHyCYD3g979xoLH-VA0qw";
+
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+function mostrarErro(msg){
+  const erro = document.getElementById("erro");
+  const sucesso = document.getElementById("sucesso");
+
+  sucesso.style.display = "none";
+  erro.innerHTML = msg;
+  erro.style.display = "block";
+}
+
+function mostrarSucesso(msg){
+  const erro = document.getElementById("erro");
+  const sucesso = document.getElementById("sucesso");
+
+  erro.style.display = "none";
+  sucesso.innerHTML = msg;
+  sucesso.style.display = "block";
+}
+
+function dataBR(dataIso){
+  if(!dataIso) return "sem validade";
+  const d = new Date(dataIso);
+  return d.toLocaleString("pt-BR");
+}
+
+async function verificarAssinatura(user){
+
+  const { data, error } = await supabaseClient
+    .from("assinaturas")
+    .select("*")
+    .eq("user_id", user.id)
+    .eq("ativo", true)
+    .order("validade", { ascending:false })
+    .limit(1)
+    .maybeSingle();
+
+  if(error){
+    console.error(error);
+    return {
+      liberado:false,
+      mensagem:"Erro ao verificar assinatura. Tente novamente."
+    };
+  }
+
+  if(!data){
+    return {
+      liberado:false,
+      mensagem:"Seu usuário ainda não possui assinatura ativa.<br>Entre em contato com o administrador."
+    };
+  }
+
+  const agora = new Date();
+  const validade = new Date(data.validade);
+
+  if(!data.validade || validade <= agora){
+    return {
+      liberado:false,
+      mensagem:`Sua assinatura está vencida.<br>Validade: ${dataBR(data.validade)}<br>Entre em contato para renovar.`
+    };
+  }
+
+  return {
+    liberado:true,
+    assinatura:data
+  };
+}
+
+async function fazerLogin(){
+
+  const email = document.getElementById("email").value.trim();
+  const senha = document.getElementById("senha").value.trim();
+  const btn = document.getElementById("btnLogin");
+
+  document.getElementById("erro").style.display = "none";
+  document.getElementById("sucesso").style.display = "none";
+
+  if(!email || !senha){
+    mostrarErro("Preencha email e senha.");
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerText = "Entrando...";
+
+  const { data, error } = await supabaseClient.auth.signInWithPassword({
+    email: email,
+    password: senha
+  });
+
+  if(error){
+    btn.disabled = false;
+    btn.innerText = "Entrar";
+    mostrarErro("Email ou senha inválidos.");
+    return;
+  }
+
+  const user = data.user;
+
+  const resultado = await verificarAssinatura(user);
+
+  if(!resultado.liberado){
+    await supabaseClient.auth.signOut();
+    localStorage.removeItem("usuario_logado");
+    localStorage.removeItem("assinatura_usuario");
+
+    btn.disabled = false;
+    btn.innerText = "Entrar";
+
+    mostrarErro(resultado.mensagem);
+    return;
+  }
+
+  localStorage.setItem("usuario_logado", JSON.stringify(user));
+  localStorage.setItem("assinatura_usuario", JSON.stringify(resultado.assinatura));
+
+  mostrarSucesso(
+    `Login realizado com sucesso!<br>Validade: ${dataBR(resultado.assinatura.validade)}`
+  );
+
+  setTimeout(() => {
+    window.location.href = "/";
+  }, 2500);
+
+}
+
+</script>
+
+</body>
+</html>
