@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin - NexClients</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--blue:#2563EB;--dark:#0F172A;--green:#16A34A;--red:#DC2626;--orange:#EA580C;--bg:#F1F5F9;--card:#fff;--border:#E2E8F0;--text:#1E293B;--muted:#64748B}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text)}
+header{background:var(--dark);padding:16px 24px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+header h1{color:#fff;font-size:1.2rem}
+.btn{border:0;border-radius:9px;padding:8px 13px;font-weight:700;cursor:pointer;font-size:.84rem}
+.blue{background:var(--blue);color:#fff}.green{background:var(--green);color:#fff}.red{background:var(--red);color:#fff}.gray{background:#475569;color:#fff}.orange{background:var(--orange);color:#fff}
+.container{padding:18px 24px 34px}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.card .label{font-size:.72rem;color:var(--muted);font-weight:700;text-transform:uppercase}
+.card .value{font-size:1.55rem;font-weight:800;margin-top:4px}
+.filters{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+input,select,textarea{border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;font-size:.9rem;outline:none;background:#fff;color:var(--text)}
+.filters input{flex:1;min-width:220px}
+.table-wrap{overflow-x:auto}
+table{width:100%;min-width:950px;border-collapse:collapse;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+th{background:var(--blue);color:#fff;padding:11px 9px;font-size:.75rem;text-align:left;text-transform:uppercase}
+td{padding:9px;border-bottom:1px solid var(--border);font-size:.85rem;vertical-align:middle}
+.badge{padding:4px 9px;border-radius:20px;font-size:.72rem;font-weight:700;white-space:nowrap}
+.ok{background:#DCFCE7;color:#15803D}.warn{background:#FEF3C7;color:#92400E}.expired{background:#FEE2E2;color:#DC2626}.blocked{background:#E2E8F0;color:#475569}
+.overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:.2s;z-index:100}
+.overlay.open{opacity:1;pointer-events:all}
+.modal{width:560px;max-width:95vw;max-height:90vh;overflow:auto;background:#fff;border-radius:18px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.28)}
+.modal h2{margin-bottom:16px;color:var(--dark)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.group{display:flex;flex-direction:column;gap:5px}.full{grid-column:1/-1}
+.group label{font-size:.75rem;color:var(--muted);font-weight:700;text-transform:uppercase}
+.footer{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;flex-wrap:wrap}
+.actions{display:flex;gap:5px;flex-wrap:wrap}.actions .btn{padding:5px 8px;font-size:.72rem}
+.toast{position:fixed;right:22px;bottom:22px;background:var(--dark);color:#fff;padding:12px 16px;border-radius:10px;opacity:0;transform:translateY(70px);transition:.25s;z-index:200;font-weight:700}
+.toast.show{opacity:1;transform:translateY(0)}
+@media(max-width:800px){.cards{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+<h1>👑 NexClients Admin</h1>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<button class="btn green" onclick="openUserModal()">＋ Novo Usuário</button>
+<button class="btn blue" onclick="loadUsers()">🔄 Atualizar</button>
+<button class="btn red" onclick="logout()">🚪 Sair</button>
+</div>
+</header>
+
+<div class="container">
+<div class="cards">
+<div class="card"><div class="label">Total usuários</div><div class="value" id="cardTotal">0</div></div>
+<div class="card"><div class="label">Ativos</div><div class="value" id="cardAtivos">0</div></div>
+<div class="card"><div class="label">Vencidos</div><div class="value" id="cardVencidos">0</div></div>
+<div class="card"><div class="label">Vencem em 7 dias</div><div class="value" id="cardBreve">0</div></div>
+</div>
+
+<div class="filters">
+<input id="search" placeholder="🔍 Buscar usuário, nome ou WhatsApp..." oninput="renderUsers()">
+<select id="filterStatus" onchange="renderUsers()">
+<option value="">Todos</option>
+<option value="ativo">Ativos</option>
+<option value="breve">Vencem em 7 dias</option>
+<option value="vencido">Vencidos</option>
+<option value="bloqueado">Bloqueados</option>
+</select>
+</div>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Usuário</th><th>Senha</th><th>Cliente</th><th>WhatsApp</th><th>Plano</th><th>Validade</th><th>Status</th><th>Obs.</th><th>Ações</th></tr></thead>
+<tbody id="tbodyUsers"></tbody>
+</table>
+</div>
+</div>
+
+<div class="overlay" id="userOverlay" onclick="closeIfBg(event,'userOverlay')">
+<div class="modal">
+<h2 id="userModalTitle">＋ Novo Usuário</h2>
+<div class="grid">
+<div class="group"><label>Usuário *</label><input id="uUsuario" placeholder="Ex: renato2325"></div>
+<div class="group"><label>Senha *</label><input id="uSenha" placeholder="Ex: 123456"></div>
+<div class="group"><label>Nome do cliente</label><input id="uNome" placeholder="Ex: Renato"></div>
+<div class="group"><label>WhatsApp</label><input id="uWhatsapp" placeholder="Ex: 54999999999"></div>
+<div class="group"><label>Plano</label><select id="uPlano"><option value="teste">Teste</option><option value="mensal">Mensal</option><option value="personalizado">Personalizado</option></select></div>
+<div class="group"><label>Validade</label><input id="uValidade" type="datetime-local"></div>
+<div class="group full"><label>Observações</label><textarea id="uObs" rows="2" placeholder="Ex: pagou Pix, renovar dia 10..."></textarea></div>
+</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+<button class="btn gray" onclick="setValidadeHoras(1)">Teste 1h</button>
+<button class="btn gray" onclick="setValidadeDias(1)">+1 dia</button>
+<button class="btn gray" onclick="setValidadeDias(7)">+7 dias</button>
+<button class="btn gray" onclick="setValidadeDias(30)">+30 dias</button>
+</div>
+<div class="footer"><button class="btn gray" onclick="closeModal('userOverlay')">Cancelar</button><button class="btn green" onclick="saveUser()">💾 Salvar</button></div>
+</div>
+</div>
+
+<div class="overlay" id="renewOverlay" onclick="closeIfBg(event,'renewOverlay')">
+<div class="modal">
+<h2>⏳ Renovar Assinatura</h2>
+<p id="renewInfo" style="color:var(--muted);font-size:.9rem;margin-bottom:12px"></p>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+<button class="btn gray" onclick="renovarHoras(1)">+1 hora</button>
+<button class="btn gray" onclick="renovarDias(1)">+1 dia</button>
+<button class="btn gray" onclick="renovarDias(7)">+7 dias</button>
+<button class="btn green" onclick="renovarDias(30)">+30 dias</button>
+<button class="btn green" onclick="renovarDias(60)">+60 dias</button>
+<button class="btn green" onclick="renovarDias(90)">+90 dias</button>
+</div>
+<div class="group"><label>Ou escolha validade manual</label><input type="datetime-local" id="renewManual"></div>
+<div class="footer"><button class="btn gray" onclick="closeModal('renewOverlay')">Cancelar</button><button class="btn blue" onclick="renovarManual()">Salvar validade manual</button></div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL="https://tfhwwasxecqkyccprupc.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRmaHd3YXN4ZWNxa3ljY3BydXBjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDY0MTQsImV4cCI6MjA5NDYyMjQxNH0.5K-tzFe7DuUT7nQqJOd183nHyCYD3g979xoLH-VA0qw";
+const supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const DOMINIO_INTERNO="nexclients.local";
+let usuarios=[],editingId=null,renewingUser=null;
+function usuarioParaEmail(usuario){const limpo=usuario.trim().toLowerCase();return limpo.includes("@")?limpo:`${limpo}@${DOMINIO_INTERNO}`}
+function toast(msg,type=''){const el=document.getElementById('toast');el.textContent=msg;el.style.background=type==='error'?'#DC2626':'#0F172A';el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2500)}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+function closeIfBg(e,id){if(e.target.id===id)closeModal(id)}
+function formatDate(dt){return dt?new Date(dt).toLocaleString('pt-BR'):'—'}
+function toDatetimeLocal(date){const d=new Date(date);d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,16)}
+function getStatus(u){if(!u.ativo)return{tipo:'bloqueado',txt:'Bloqueado',cls:'blocked'};if(!u.validade)return{tipo:'vencido',txt:'Sem validade',cls:'expired'};const diff=new Date(u.validade)-new Date();const dias=diff/86400000;if(diff<=0)return{tipo:'vencido',txt:'Vencido',cls:'expired'};if(dias<=7)return{tipo:'breve',txt:'Vence em breve',cls:'warn'};return{tipo:'ativo',txt:'Ativo',cls:'ok'}}
+async function checkAdmin(){const {data:{user}}=await supabaseClient.auth.getUser();if(!user){location.href="/login.html";return false}const {data,error}=await supabaseClient.from('profiles').select('tipo').eq('id',user.id).maybeSingle();if(error||!data||data.tipo!=='admin'){alert('Acesso negado. Apenas admin.');location.href="/";return false}return true}
+async function loadUsers(){if(!await checkAdmin())return;const {data,error}=await supabaseClient.from('usuarios_sistema').select('*').order('created_at',{ascending:false});if(error){toast('Erro ao carregar: '+error.message,'error');return}usuarios=data||[];renderUsers()}
+function renderCards(){document.getElementById('cardTotal').textContent=usuarios.length;document.getElementById('cardAtivos').textContent=usuarios.filter(u=>getStatus(u).tipo==='ativo').length;document.getElementById('cardVencidos').textContent=usuarios.filter(u=>getStatus(u).tipo==='vencido').length;document.getElementById('cardBreve').textContent=usuarios.filter(u=>getStatus(u).tipo==='breve').length}
+function renderUsers(){renderCards();const q=document.getElementById('search').value.toLowerCase();const f=document.getElementById('filterStatus').value;const filtered=usuarios.filter(u=>{const st=getStatus(u).tipo;const txt=((u.usuario||'')+' '+(u.nome_cliente||'')+' '+(u.whatsapp||'')).toLowerCase();return(!q||txt.includes(q))&&(!f||st===f)});const tbody=document.getElementById('tbodyUsers');if(!filtered.length){tbody.innerHTML='<tr><td colspan="9" style="text-align:center;color:#64748B;padding:28px">Nenhum usuário encontrado.</td></tr>';return}tbody.innerHTML=filtered.map(u=>{const st=getStatus(u);return`<tr><td><strong>${u.usuario||'—'}</strong></td><td>${u.senha_anotacao||'—'}</td><td>${u.nome_cliente||'—'}</td><td>${u.whatsapp||'—'}</td><td>${u.plano||'—'}</td><td>${formatDate(u.validade)}</td><td><span class="badge ${st.cls}">${st.txt}</span></td><td>${u.observacoes||'—'}</td><td><div class="actions"><button class="btn blue" onclick="openRenewModal(${u.id})">Renovar</button><button class="btn gray" onclick="editUser(${u.id})">Editar</button><button class="btn ${u.ativo?'orange':'green'}" onclick="toggleBlock(${u.id})">${u.ativo?'Bloquear':'Ativar'}</button><button class="btn red" onclick="deleteUser(${u.id})">Excluir</button></div></td></tr>`}).join('')}
+function openUserModal(){editingId=null;document.getElementById('userModalTitle').textContent='＋ Novo Usuário';['uUsuario','uSenha','uNome','uWhatsapp','uObs'].forEach(id=>document.getElementById(id).value='');document.getElementById('uPlano').value='teste';setValidadeHoras(1);document.getElementById('uUsuario').disabled=false;document.getElementById('userOverlay').classList.add('open')}
+function editUser(id){const u=usuarios.find(x=>x.id===id);if(!u)return;editingId=id;document.getElementById('userModalTitle').textContent='✏️ Editar Usuário';document.getElementById('uUsuario').value=u.usuario||'';document.getElementById('uSenha').value=u.senha_anotacao||'';document.getElementById('uNome').value=u.nome_cliente||'';document.getElementById('uWhatsapp').value=u.whatsapp||'';document.getElementById('uPlano').value=u.plano||'mensal';document.getElementById('uValidade').value=u.validade?toDatetimeLocal(u.validade):'';document.getElementById('uObs').value=u.observacoes||'';document.getElementById('uUsuario').disabled=true;document.getElementById('userOverlay').classList.add('open')}
+function setValidadeHoras(h){const d=new Date();d.setHours(d.getHours()+h);document.getElementById('uValidade').value=toDatetimeLocal(d);document.getElementById('uPlano').value='teste'}
+function setValidadeDias(dias){const d=new Date();d.setDate(d.getDate()+dias);document.getElementById('uValidade').value=toDatetimeLocal(d);document.getElementById('uPlano').value=dias>=30?'mensal':'personalizado'}
+async function saveUser(){const usuario=document.getElementById('uUsuario').value.trim().toLowerCase(),senha=document.getElementById('uSenha').value.trim(),nome=document.getElementById('uNome').value.trim(),whatsapp=document.getElementById('uWhatsapp').value.trim(),plano=document.getElementById('uPlano').value,valLocal=document.getElementById('uValidade').value,obs=document.getElementById('uObs').value.trim();if(!usuario||!senha){toast('Preencha usuário e senha.','error');return}if(!valLocal){toast('Defina validade.','error');return}const validadeIso=new Date(valLocal).toISOString();try{if(editingId){const atual=usuarios.find(u=>u.id===editingId);let upd={senha_anotacao:senha,nome_cliente:nome,whatsapp,plano,validade:validadeIso,observacoes:obs};let {error}=await supabaseClient.from('usuarios_sistema').update(upd).eq('id',editingId);if(error)throw error;if(atual.auth_user_id){await supabaseClient.from('assinaturas').update({plano,validade:validadeIso,ativo:true}).eq('user_id',atual.auth_user_id)}toast('Usuário atualizado!')}else{const emailTecnico=usuarioParaEmail(usuario);const {data:existing}=await supabaseClient.from('usuarios_sistema').select('id').eq('usuario',usuario).maybeSingle();if(existing){toast('Já existe esse usuário.','error');return}let {error}=await supabaseClient.from('usuarios_sistema').insert([{auth_user_id:null,usuario,senha_anotacao:senha,nome_cliente:nome,whatsapp,plano,validade:validadeIso,ativo:true,observacoes:obs}]);if(error)throw error;toast('Salvo. Crie no Auth: '+emailTecnico)}closeModal('userOverlay');loadUsers()}catch(e){toast('Erro: '+e.message,'error')}}
+function openRenewModal(id){renewingUser=usuarios.find(u=>u.id===id);if(!renewingUser)return;document.getElementById('renewInfo').innerHTML=`Usuário: <strong>${renewingUser.usuario}</strong><br>Validade atual: ${formatDate(renewingUser.validade)}`;document.getElementById('renewManual').value=renewingUser.validade?toDatetimeLocal(renewingUser.validade):'';document.getElementById('renewOverlay').classList.add('open')}
+function baseRenewDate(){const agora=new Date();const atual=renewingUser&&renewingUser.validade?new Date(renewingUser.validade):agora;return atual>agora?atual:agora}
+async function renovarHoras(h){const d=baseRenewDate();d.setHours(d.getHours()+h);await salvarRenovacao(d,'teste')}
+async function renovarDias(dias){const d=baseRenewDate();d.setDate(d.getDate()+dias);await salvarRenovacao(d,dias>=30?'mensal':'personalizado')}
+async function renovarManual(){const v=document.getElementById('renewManual').value;if(!v){toast('Escolha validade.','error');return}await salvarRenovacao(new Date(v),'personalizado')}
+async function salvarRenovacao(dataValidade,plano){if(!renewingUser)return;try{const validadeIso=dataValidade.toISOString();let {error}=await supabaseClient.from('usuarios_sistema').update({validade:validadeIso,plano,ativo:true}).eq('id',renewingUser.id);if(error)throw error;if(renewingUser.auth_user_id){await supabaseClient.from('assinaturas').upsert([{user_id:renewingUser.auth_user_id,plano,creditos:plano==='mensal'?1:0,validade:validadeIso,ativo:true}],{onConflict:'user_id'})}toast('Assinatura renovada!');closeModal('renewOverlay');loadUsers()}catch(e){toast('Erro ao renovar: '+e.message,'error')}}
+async function toggleBlock(id){const u=usuarios.find(x=>x.id===id);if(!u)return;try{const novo=!u.ativo;let {error}=await supabaseClient.from('usuarios_sistema').update({ativo:novo}).eq('id',id);if(error)throw error;if(u.auth_user_id){await supabaseClient.from('assinaturas').update({ativo:novo}).eq('user_id',u.auth_user_id)}toast(novo?'Usuário ativado!':'Usuário bloqueado!');loadUsers()}catch(e){toast('Erro: '+e.message,'error')}}
+async function deleteUser(id){if(!confirm('Excluir este usuário do controle admin?'))return;try{let {error}=await supabaseClient.from('usuarios_sistema').delete().eq('id',id);if(error)throw error;toast('Usuário removido.');loadUsers()}catch(e){toast('Erro: '+e.message,'error')}}
+async function logout(){await supabaseClient.auth.signOut();localStorage.removeItem('usuario_logado');localStorage.removeItem('assinatura_usuario');location.href='/login.html'}
+document.addEventListener('DOMContentLoaded',loadUsers);
+</script>
+</body>
+</html>
